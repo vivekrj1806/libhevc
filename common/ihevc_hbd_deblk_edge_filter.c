@@ -620,10 +620,11 @@ void ihevc_hbd_deblk_chroma_vert(UWORD16 *pu2_src,
     qp_indx_v = qp_offset_v + ((quant_param_p + quant_param_q + 1) >> 1);
 
     /* 8.7.2.5.5 Filtering process for chroma block edges */
-    if(chroma_fmt_idc == CHROMA_FMT_IDC_YUV444)
+    if(chroma_fmt_idc == CHROMA_FMT_IDC_YUV444 || chroma_fmt_idc == CHROMA_FMT_IDC_YUV422)
     {
-        qp_chroma_u = MIN(qp_indx_u, 51);
-        qp_chroma_v = MIN(qp_indx_v, 51);
+        WORD32 qp_cap = 51 + 6 * (bit_depth - 8);
+        qp_chroma_u = MIN(qp_indx_u, qp_cap);
+        qp_chroma_v = MIN(qp_indx_v, qp_cap);
     }
     else
     {
@@ -860,10 +861,10 @@ void ihevc_hbd_deblk_422chroma_vert(UWORD16 *pu2_src,
     /* chroma processing is done only if BS is 2             */
     /* this function is assumed to be called only if BS is 2 */
     qp_indx_u = qp_offset_u + ((quant_param_p + quant_param_q + 1) >> 1);
-    qp_chroma_u = MIN(qp_indx_u, 51);
+    qp_chroma_u = MIN(qp_indx_u, 51 + 6 * (bit_depth - 8));
 
     qp_indx_v = qp_offset_v + ((quant_param_p + quant_param_q + 1) >> 1);
-    qp_chroma_v = MIN(qp_indx_v, 51);
+    qp_chroma_v = MIN(qp_indx_v, 51 + 6 * (bit_depth - 8));
 
     tc_indx_u = CLIP3(qp_chroma_u + 2 + (tc_offset_div2 << 1), 0, 53);
     tc_u = gai4_ihevc_tc_table[tc_indx_u] * (1 << (bit_depth - 8));
@@ -1098,10 +1099,11 @@ void ihevc_hbd_deblk_chroma_horz(UWORD16 *pu2_src,
     qp_indx_v = qp_offset_v + ((quant_param_p + quant_param_q + 1) >> 1);
 
     /* 8.7.2.5.5 Filtering process for chroma block edges */
-    if(chroma_fmt_idc == CHROMA_FMT_IDC_YUV444)
+    if(chroma_fmt_idc == CHROMA_FMT_IDC_YUV444 || chroma_fmt_idc == CHROMA_FMT_IDC_YUV422)
     {
-        qp_chroma_u = MIN(qp_indx_u, 51);
-        qp_chroma_v = MIN(qp_indx_v, 51);
+        WORD32 qp_cap = 51 + 6 * (bit_depth - 8);
+        qp_chroma_u = MIN(qp_indx_u, qp_cap);
+        qp_chroma_v = MIN(qp_indx_v, qp_cap);
     }
     else
     {
@@ -1217,10 +1219,10 @@ void ihevc_hbd_deblk_422chroma_horz(UWORD16 *pu2_src,
     /* chroma processing is done only if BS is 2             */
     /* this function is assumed to be called only if BS is 2 */
     qp_indx_u = qp_offset_u + ((quant_param_p + quant_param_q + 1) >> 1);
-    qp_chroma_u = MIN(qp_indx_u, 51);
+    qp_chroma_u = MIN(qp_indx_u, 51 + 6 * (bit_depth - 8));
 
     qp_indx_v = qp_offset_v + ((quant_param_p + quant_param_q + 1) >> 1);
-    qp_chroma_v = MIN(qp_indx_v, 51);
+    qp_chroma_v = MIN(qp_indx_v, 51 + 6 * (bit_depth - 8));
 
     tc_indx_u = CLIP3(qp_chroma_u + 2 + (tc_offset_div2 << 1), 0, 53);
     tc_u = gai4_ihevc_tc_table[tc_indx_u] * (1 << (bit_depth - 8));
