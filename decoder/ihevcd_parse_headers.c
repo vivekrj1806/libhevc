@@ -167,6 +167,17 @@ WORD32 ihevcd_parse_pred_wt_ofst(bitstrm_t *ps_bitstrm,
     pred_wt_ofst_t *ps_wt_ofst = &ps_slice_hdr->s_wt_ofst;
     UNUSED(ps_pps);
 
+#ifdef ENABLE_MAIN_REXT_PROFILE
+    ps_wt_ofst->i1_wp_ofst_bd_shift_luma =
+        ps_sps->i1_use_high_precision_pred_wt ? 0 : ps_sps->i1_bit_depth_luma_minus8;
+    ps_wt_ofst->i1_wp_ofst_bd_shift_chroma =
+        ps_sps->i1_use_high_precision_pred_wt ? 0 : ps_sps->i1_bit_depth_chroma_minus8;
+    ps_wt_ofst->i4_wp_ofst_half_rng_luma =
+        1 << (ps_sps->i1_use_high_precision_pred_wt ? (ps_sps->i1_bit_depth_luma_minus8 + 7) : 7);
+    ps_wt_ofst->i4_wp_ofst_half_rng_chroma =
+        1 << (ps_sps->i1_use_high_precision_pred_wt ? (ps_sps->i1_bit_depth_chroma_minus8 + 7) : 7);
+#endif
+
     UEV_PARSE("luma_log2_weight_denom", u4_value, ps_bitstrm);
     if(u4_value > 7)
     {
@@ -228,7 +239,12 @@ WORD32 ihevcd_parse_pred_wt_ofst(bitstrm_t *ps_bitstrm,
             ps_wt_ofst->i2_luma_weight_l0[i] = (1 << ps_wt_ofst->i1_luma_log2_weight_denom) + value;
 
             SEV_PARSE("luma_offset_l0[ i ]", value, ps_bitstrm);
+#ifdef ENABLE_MAIN_REXT_PROFILE
+            if(value < -ps_wt_ofst->i4_wp_ofst_half_rng_luma ||
+               value > (ps_wt_ofst->i4_wp_ofst_half_rng_luma - 1))
+#else
             if( value < -128 || value > 127 )
+#endif
             {
                 return IHEVCD_INVALID_PARAMETER;
             }
@@ -243,7 +259,11 @@ WORD32 ihevcd_parse_pred_wt_ofst(bitstrm_t *ps_bitstrm,
         if(ps_wt_ofst->i1_chroma_weight_l0_flag[i])
         {
             WORD32 ofst;
+#ifdef ENABLE_MAIN_REXT_PROFILE
+            WORD32 shift = ps_wt_ofst->i4_wp_ofst_half_rng_chroma;
+#else
             WORD32 shift = (1 << (BIT_DEPTH_CHROMA - 1));
+#endif
             SEV_PARSE("delta_chroma_weight_l0[ i ][ j ]", value, ps_bitstrm);
             if(value < -128 || value > 127)
             {
@@ -253,14 +273,23 @@ WORD32 ihevcd_parse_pred_wt_ofst(bitstrm_t *ps_bitstrm,
 
 
             SEV_PARSE("delta_chroma_offset_l0[ i ][ j ]", value, ps_bitstrm);
+#ifdef ENABLE_MAIN_REXT_PROFILE
+            if(value < -4 * ps_wt_ofst->i4_wp_ofst_half_rng_chroma ||
+               value > (4 * ps_wt_ofst->i4_wp_ofst_half_rng_chroma - 1))
+#else
             if( value < -512 || value > 511 )
+#endif
             {
                 return IHEVCD_INVALID_PARAMETER;
             }
             ofst = ((shift * ps_wt_ofst->i2_chroma_weight_l0_cb[i]) >> ps_wt_ofst->i1_chroma_log2_weight_denom);
             ofst = value - ofst + shift;
 
+#ifdef ENABLE_MAIN_REXT_PROFILE
+            ps_wt_ofst->i2_chroma_offset_l0_cb[i] = CLIP3(ofst, -shift, shift - 1);
+#else
             ps_wt_ofst->i2_chroma_offset_l0_cb[i] = CLIP_S8(ofst);
+#endif
 
             SEV_PARSE("delta_chroma_weight_l0[ i ][ j ]", value, ps_bitstrm);
             if(value < -128 || value > 127)
@@ -271,14 +300,23 @@ WORD32 ihevcd_parse_pred_wt_ofst(bitstrm_t *ps_bitstrm,
 
 
             SEV_PARSE("delta_chroma_offset_l0[ i ][ j ]", value, ps_bitstrm);
+#ifdef ENABLE_MAIN_REXT_PROFILE
+            if(value < -4 * ps_wt_ofst->i4_wp_ofst_half_rng_chroma ||
+               value > (4 * ps_wt_ofst->i4_wp_ofst_half_rng_chroma - 1))
+#else
             if( value < -512 || value > 511 )
+#endif
             {
                 return IHEVCD_INVALID_PARAMETER;
             }
             ofst = ((shift * ps_wt_ofst->i2_chroma_weight_l0_cr[i]) >> ps_wt_ofst->i1_chroma_log2_weight_denom);
             ofst = value - ofst + shift;
 
+#ifdef ENABLE_MAIN_REXT_PROFILE
+            ps_wt_ofst->i2_chroma_offset_l0_cr[i] = CLIP3(ofst, -shift, shift - 1);
+#else
             ps_wt_ofst->i2_chroma_offset_l0_cr[i] = CLIP_S8(ofst);
+#endif
 
         }
         else
@@ -327,11 +365,16 @@ WORD32 ihevcd_parse_pred_wt_ofst(bitstrm_t *ps_bitstrm,
                 ps_wt_ofst->i2_luma_weight_l1[i] = (1 << ps_wt_ofst->i1_luma_log2_weight_denom) + value;
 
                 SEV_PARSE("luma_offset_l1[ i ]", value, ps_bitstrm);
-                if( value < -128 || value > 127 )
-                {
-                    return IHEVCD_INVALID_PARAMETER;
-                }
-                ps_wt_ofst->i2_luma_offset_l1[i] = value;
+#ifdef ENABLE_MAIN_REXT_PROFILE
+            if(value < -ps_wt_ofst->i4_wp_ofst_half_rng_luma ||
+               value > (ps_wt_ofst->i4_wp_ofst_half_rng_luma - 1))
+#else
+            if( value < -128 || value > 127 )
+#endif
+            {
+                return IHEVCD_INVALID_PARAMETER;
+            }
+            ps_wt_ofst->i2_luma_offset_l1[i] = value;
 
             }
             else
@@ -343,7 +386,11 @@ WORD32 ihevcd_parse_pred_wt_ofst(bitstrm_t *ps_bitstrm,
             if(ps_wt_ofst->i1_chroma_weight_l1_flag[i])
             {
                 WORD32 ofst;
-                WORD32 shift = (1 << (BIT_DEPTH_CHROMA - 1));
+#ifdef ENABLE_MAIN_REXT_PROFILE
+            WORD32 shift = ps_wt_ofst->i4_wp_ofst_half_rng_chroma;
+#else
+            WORD32 shift = (1 << (BIT_DEPTH_CHROMA - 1));
+#endif
                 SEV_PARSE("delta_chroma_weight_l1[ i ][ j ]", value, ps_bitstrm);
                 if(value < -128 || value > 127)
                 {
@@ -353,14 +400,23 @@ WORD32 ihevcd_parse_pred_wt_ofst(bitstrm_t *ps_bitstrm,
 
 
                 SEV_PARSE("delta_chroma_offset_l1[ i ][ j ]", value, ps_bitstrm);
-                if( value < -512 || value > 511 )
+#ifdef ENABLE_MAIN_REXT_PROFILE
+            if(value < -4 * ps_wt_ofst->i4_wp_ofst_half_rng_chroma ||
+               value > (4 * ps_wt_ofst->i4_wp_ofst_half_rng_chroma - 1))
+#else
+            if( value < -512 || value > 511 )
+#endif
                 {
                     return IHEVCD_INVALID_PARAMETER;
                 }
                 ofst = ((shift * ps_wt_ofst->i2_chroma_weight_l1_cb[i]) >> ps_wt_ofst->i1_chroma_log2_weight_denom);
                 ofst = value - ofst + shift;
 
-                 ps_wt_ofst->i2_chroma_offset_l1_cb[i] = CLIP_S8(ofst);
+#ifdef ENABLE_MAIN_REXT_PROFILE
+            ps_wt_ofst->i2_chroma_offset_l1_cb[i] = CLIP3(ofst, -shift, shift - 1);
+#else
+            ps_wt_ofst->i2_chroma_offset_l1_cb[i] = CLIP_S8(ofst);
+#endif
 
                 SEV_PARSE("delta_chroma_weight_l1[ i ][ j ]", value, ps_bitstrm);
                 if(value < -128 || value > 127)
@@ -371,14 +427,23 @@ WORD32 ihevcd_parse_pred_wt_ofst(bitstrm_t *ps_bitstrm,
 
 
                 SEV_PARSE("delta_chroma_offset_l1[ i ][ j ]", value, ps_bitstrm);
-                if( value < -512 || value > 511 )
+#ifdef ENABLE_MAIN_REXT_PROFILE
+            if(value < -4 * ps_wt_ofst->i4_wp_ofst_half_rng_chroma ||
+               value > (4 * ps_wt_ofst->i4_wp_ofst_half_rng_chroma - 1))
+#else
+            if( value < -512 || value > 511 )
+#endif
                 {
                     return IHEVCD_INVALID_PARAMETER;
                 }
                 ofst = ((shift * ps_wt_ofst->i2_chroma_weight_l1_cr[i]) >> ps_wt_ofst->i1_chroma_log2_weight_denom);
                 ofst = value - ofst + shift;
 
-                 ps_wt_ofst->i2_chroma_offset_l1_cr[i] = CLIP_S8(ofst);
+#ifdef ENABLE_MAIN_REXT_PROFILE
+            ps_wt_ofst->i2_chroma_offset_l1_cr[i] = CLIP3(ofst, -shift, shift - 1);
+#else
+            ps_wt_ofst->i2_chroma_offset_l1_cr[i] = CLIP_S8(ofst);
+#endif
 
             }
             else

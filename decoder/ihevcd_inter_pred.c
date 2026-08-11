@@ -239,7 +239,13 @@ void ihevcd_inter_pred_ctb(process_ctxt_t *ps_proc)
             ref_pic_luma_l0 = ps_pic_buf_l0->pu1_luma;
 
             luma_weight_l0 = ps_wt_ofst->i2_luma_weight_l0[ps_pu->mv.i1_l0_ref_idx];
+#ifdef ENABLE_MAIN_REXT_PROFILE
+            luma_offset_l0 =
+                ps_wt_ofst->i2_luma_offset_l0[ps_pu->mv.i1_l0_ref_idx] *
+                (1 << ps_wt_ofst->i1_wp_ofst_bd_shift_luma);
+#else
             luma_offset_l0 = ps_wt_ofst->i2_luma_offset_l0[ps_pu->mv.i1_l0_ref_idx] * (1 << (i4_bit_depth_luma - 8));
+#endif
 
             if(CHROMA_FMT_IDC_MONOCHROME != ps_sps->i1_chroma_format_idc)
             {
@@ -247,8 +253,17 @@ void ihevcd_inter_pred_ctb(process_ctxt_t *ps_proc)
                 chroma_weight_l0_cb = ps_wt_ofst->i2_chroma_weight_l0_cb[ps_pu->mv.i1_l0_ref_idx];
                 chroma_weight_l0_cr = ps_wt_ofst->i2_chroma_weight_l0_cr[ps_pu->mv.i1_l0_ref_idx];
 
+#ifdef ENABLE_MAIN_REXT_PROFILE
+                chroma_offset_l0_cb =
+                    ps_wt_ofst->i2_chroma_offset_l0_cb[ps_pu->mv.i1_l0_ref_idx] *
+                    (1 << ps_wt_ofst->i1_wp_ofst_bd_shift_chroma);
+                chroma_offset_l0_cr =
+                    ps_wt_ofst->i2_chroma_offset_l0_cr[ps_pu->mv.i1_l0_ref_idx] *
+                    (1 << ps_wt_ofst->i1_wp_ofst_bd_shift_chroma);
+#else
                 chroma_offset_l0_cb = ps_wt_ofst->i2_chroma_offset_l0_cb[ps_pu->mv.i1_l0_ref_idx] * (1 << (i4_bit_depth_chroma - 8));
                 chroma_offset_l0_cr = ps_wt_ofst->i2_chroma_offset_l0_cr[ps_pu->mv.i1_l0_ref_idx] * (1 << (i4_bit_depth_chroma - 8));
+#endif
             }
         }
 
@@ -259,7 +274,13 @@ void ihevcd_inter_pred_ctb(process_ctxt_t *ps_proc)
             ref_pic_luma_l1 = ps_pic_buf_l1->pu1_luma;
 
             luma_weight_l1 = ps_wt_ofst->i2_luma_weight_l1[ps_pu->mv.i1_l1_ref_idx];
+#ifdef ENABLE_MAIN_REXT_PROFILE
+            luma_offset_l1 =
+                ps_wt_ofst->i2_luma_offset_l1[ps_pu->mv.i1_l1_ref_idx] *
+                (1 << ps_wt_ofst->i1_wp_ofst_bd_shift_luma);
+#else
             luma_offset_l1 = ps_wt_ofst->i2_luma_offset_l1[ps_pu->mv.i1_l1_ref_idx] * (1 << (i4_bit_depth_luma - 8));
+#endif
 
             if(CHROMA_FMT_IDC_MONOCHROME != ps_sps->i1_chroma_format_idc)
             {
@@ -267,8 +288,17 @@ void ihevcd_inter_pred_ctb(process_ctxt_t *ps_proc)
                 chroma_weight_l1_cb = ps_wt_ofst->i2_chroma_weight_l1_cb[ps_pu->mv.i1_l1_ref_idx];
                 chroma_weight_l1_cr = ps_wt_ofst->i2_chroma_weight_l1_cr[ps_pu->mv.i1_l1_ref_idx];
 
+#ifdef ENABLE_MAIN_REXT_PROFILE
+                chroma_offset_l1_cb =
+                    ps_wt_ofst->i2_chroma_offset_l1_cb[ps_pu->mv.i1_l1_ref_idx] *
+                    (1 << ps_wt_ofst->i1_wp_ofst_bd_shift_chroma);
+                chroma_offset_l1_cr =
+                    ps_wt_ofst->i2_chroma_offset_l1_cr[ps_pu->mv.i1_l1_ref_idx] *
+                    (1 << ps_wt_ofst->i1_wp_ofst_bd_shift_chroma);
+#else
                 chroma_offset_l1_cb = ps_wt_ofst->i2_chroma_offset_l1_cb[ps_pu->mv.i1_l1_ref_idx] * (1 << (i4_bit_depth_chroma - 8));
                 chroma_offset_l1_cr = ps_wt_ofst->i2_chroma_offset_l1_cr[ps_pu->mv.i1_l1_ref_idx] * (1 << (i4_bit_depth_chroma - 8));
+#endif
             }
         }
 
