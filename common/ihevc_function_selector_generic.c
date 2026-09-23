@@ -45,6 +45,10 @@ void ihevc_init_function_ptr_generic(ihevc_func_selector_t *ps_func_selector)
     ps_func_selector->ihevc_deblk_luma_horz_fptr                        =  &ihevc_deblk_luma_horz;
     ps_func_selector->ihevc_deblk_422chroma_horz_fptr                   =  &ihevc_deblk_422chroma_horz;
     ps_func_selector->ihevc_deblk_422chroma_vert_fptr                   =  &ihevc_deblk_422chroma_vert;
+    ps_func_selector->ihevc_hbd_deblk_chroma_horz_fptr                  =  &ihevc_hbd_deblk_chroma_horz;
+    ps_func_selector->ihevc_hbd_deblk_chroma_vert_fptr                  =  &ihevc_hbd_deblk_chroma_vert;
+    ps_func_selector->ihevc_hbd_deblk_luma_vert_fptr                    =  &ihevc_hbd_deblk_luma_vert;
+    ps_func_selector->ihevc_hbd_deblk_luma_horz_fptr                    =  &ihevc_hbd_deblk_luma_horz;
     ps_func_selector->ihevc_inter_pred_chroma_copy_fptr                 =  &ihevc_inter_pred_chroma_copy;
     ps_func_selector->ihevc_inter_pred_chroma_copy_w16out_fptr          =  &ihevc_inter_pred_chroma_copy_w16out;
     ps_func_selector->ihevc_inter_pred_chroma_horz_fptr                 =  &ihevc_inter_pred_chroma_horz;

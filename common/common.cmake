@@ -253,6 +253,7 @@ else()
     "${HEVC_ROOT}/common/x86/ihevc_itrans_recon_32x32_ssse3_intr.c"
     "${HEVC_ROOT}/common/x86/ihevc_sao_ssse3_intr.c"
     "${HEVC_ROOT}/common/x86/ihevc_deblk_ssse3_intr.c"
+    "${HEVC_ROOT}/common/x86/ihevc_hbd_deblk_ssse3_intr.c"
     "${HEVC_ROOT}/common/x86/ihevc_padding_ssse3_intr.c"
     "${HEVC_ROOT}/common/x86/ihevc_mem_fns_ssse3_intr.c"
     "${HEVC_ROOT}/common/x86/ihevc_inter_pred_filters_sse42_intr.c"
