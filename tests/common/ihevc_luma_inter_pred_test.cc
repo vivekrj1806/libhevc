@@ -185,3 +185,122 @@ INSTANTIATE_TEST_SUITE_P(LumaVertTest, LumaInterPred_16_8_Test,
 
 INSTANTIATE_TEST_SUITE_P(LumaVertTest, LumaInterPred_16_16_Test,
                          kLumaInterPredTestParams, PrintLumaInterPredTestParam);
+
+template <typename srcType, typename dstType>
+class LumaInterPredHbdTest
+    : public ::testing::TestWithParam<LumaInterPredTestParam> {
+protected:
+  void SetUp() override {
+    std::pair<int, int> block_size;
+    std::tie(block_size, src_strd_mul, dst_strd_mul, coeff_idx, arch) =
+        GetParam();
+    std::tie(wd, ht) = block_size;
+    src_strd = wd * src_strd_mul;
+    dst_strd = wd * dst_strd_mul;
+
+#if defined(__x86_64__) || defined(_M_X64) || defined(__i386) ||               \
+    defined(_M_IX86)
+    int pad_dst = 16;
+#else
+    int pad_dst = 0;
+#endif
+
+    dst_buf_ref.resize(dst_strd * ht + pad_dst);
+    dst_buf_tst.resize(dst_strd * ht + pad_dst);
+
+    if constexpr (std::is_same_v<srcType, WORD16>) {
+      pv_src = (srcType*)getSrcW16Buf().data() + kTapSize / 2 * src_strd;
+    } else {
+      pv_src = (srcType*)getSrc16Buf().data() + kTapSize / 2 * src_strd;
+    }
+    pv_dst_ref = dst_buf_ref.data();
+    pv_dst_tst = dst_buf_tst.data();
+
+    pi1_coeffs = gai1_ihevc_luma_filter[coeff_idx];
+    tst = get_tst_func_ptr(arch);
+    ref = get_ref_func_ptr();
+  }
+
+  template <typename FuncPtr> void RunTest(FuncPtr func_ptr) {
+    UWORD8 bit_depth = 10;
+    (ref->*func_ptr)(pv_src, pv_dst_ref, src_strd, dst_strd, pi1_coeffs, ht,
+                     wd, bit_depth);
+    (tst->*func_ptr)(pv_src, pv_dst_tst, src_strd, dst_strd, pi1_coeffs, ht,
+                     wd, bit_depth);
+    ASSERT_NO_FATAL_FAILURE(
+        compare_output<dstType>(dst_buf_ref, dst_buf_tst, wd, ht, dst_strd));
+  }
+
+  int wd, ht, src_strd_mul, dst_strd_mul, coeff_idx;
+  int src_strd, dst_strd;
+  std::vector<dstType> dst_buf_ref;
+  std::vector<dstType> dst_buf_tst;
+  srcType *pv_src;
+  dstType *pv_dst_ref;
+  dstType *pv_dst_tst;
+  WORD8 *pi1_coeffs;
+  IV_ARCH_T arch;
+  const ihevc_func_selector_t *tst;
+  const ihevc_func_selector_t *ref;
+};
+
+class LumaInterPredHbd_16_16_Test : public LumaInterPredHbdTest<UWORD16, UWORD16> {};
+class LumaInterPredHbd_16_W16_Test : public LumaInterPredHbdTest<UWORD16, WORD16> {};
+class LumaInterPredHbd_W16_16_Test : public LumaInterPredHbdTest<WORD16, UWORD16> {};
+class LumaInterPredHbd_W16_W16_Test : public LumaInterPredHbdTest<WORD16, WORD16> {};
+
+TEST_P(LumaInterPredHbd_16_16_Test, LumaCopyTest) {
+  RunTest(&ihevc_func_selector_t::ihevc_hbd_inter_pred_luma_copy_fptr);
+}
+
+TEST_P(LumaInterPredHbd_16_16_Test, LumaHorzTest) {
+  RunTest(&ihevc_func_selector_t::ihevc_hbd_inter_pred_luma_horz_fptr);
+}
+
+TEST_P(LumaInterPredHbd_16_16_Test, LumaVertTest) {
+  RunTest(&ihevc_func_selector_t::ihevc_hbd_inter_pred_luma_vert_fptr);
+}
+
+TEST_P(LumaInterPredHbd_16_W16_Test, LumaCopyTest) {
+  RunTest(&ihevc_func_selector_t::ihevc_hbd_inter_pred_luma_copy_w16out_fptr);
+}
+
+TEST_P(LumaInterPredHbd_16_W16_Test, LumaHorzTest) {
+  RunTest(&ihevc_func_selector_t::ihevc_hbd_inter_pred_luma_horz_w16out_fptr);
+}
+
+TEST_P(LumaInterPredHbd_16_W16_Test, LumaVertTest) {
+  RunTest(&ihevc_func_selector_t::ihevc_hbd_inter_pred_luma_vert_w16out_fptr);
+}
+
+TEST_P(LumaInterPredHbd_W16_16_Test, LumaVertTest) {
+  RunTest(&ihevc_func_selector_t::ihevc_hbd_inter_pred_luma_vert_w16inp_fptr);
+}
+
+TEST_P(LumaInterPredHbd_W16_W16_Test, LumaVertTest) {
+  RunTest(&ihevc_func_selector_t::ihevc_hbd_inter_pred_luma_vert_w16inp_w16out_fptr);
+}
+
+INSTANTIATE_TEST_SUITE_P(LumaCopyHbdTest, LumaInterPredHbd_16_16_Test,
+                         kLumaInterPredTestParams, PrintLumaInterPredTestParam);
+
+INSTANTIATE_TEST_SUITE_P(LumaHorzHbdTest, LumaInterPredHbd_16_16_Test,
+                         kLumaInterPredTestParams, PrintLumaInterPredTestParam);
+
+INSTANTIATE_TEST_SUITE_P(LumaVertHbdTest, LumaInterPredHbd_16_16_Test,
+                         kLumaInterPredTestParams, PrintLumaInterPredTestParam);
+
+INSTANTIATE_TEST_SUITE_P(LumaCopyHbdTest, LumaInterPredHbd_16_W16_Test,
+                         kLumaInterPredTestParams, PrintLumaInterPredTestParam);
+
+INSTANTIATE_TEST_SUITE_P(LumaHorzHbdTest, LumaInterPredHbd_16_W16_Test,
+                         kLumaInterPredTestParams, PrintLumaInterPredTestParam);
+
+INSTANTIATE_TEST_SUITE_P(LumaVertHbdTest, LumaInterPredHbd_16_W16_Test,
+                         kLumaInterPredTestParams, PrintLumaInterPredTestParam);
+
+INSTANTIATE_TEST_SUITE_P(LumaVertHbdTest, LumaInterPredHbd_W16_16_Test,
+                         kLumaInterPredTestParams, PrintLumaInterPredTestParam);
+
+INSTANTIATE_TEST_SUITE_P(LumaVertHbdTest, LumaInterPredHbd_W16_W16_Test,
+                         kLumaInterPredTestParams, PrintLumaInterPredTestParam);

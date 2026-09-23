@@ -47,6 +47,8 @@ static constexpr int kMaxHeight = kMaxSize + kTapSize;
 const std::vector<std::pair<int, int>>& getLumaPUBlockSizes();
 const std::vector<std::pair<int, int>>& getChromaPUBlockSizes();
 const std::vector<UWORD8>& getSrc8Buf();
+const std::vector<UWORD16>& getSrc16Buf();
+const std::vector<WORD16>& getSrcW16Buf();
 const std::vector<IV_ARCH_T>& getTstArch();
 
 // Compare outputs

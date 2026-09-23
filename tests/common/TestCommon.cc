@@ -71,6 +71,28 @@ const std::vector<UWORD8>& getSrc8Buf() {
   return g_src8_buf;
 }
 
+const std::vector<UWORD16>& getSrc16Buf() {
+  static const std::vector<UWORD16> g_src16_buf = []() {
+    std::vector<UWORD16> buf(kMaxSize * kMaxHeight * 4);
+    std::mt19937 rng(12345);
+    std::uniform_int_distribution<int> dist(0, 1023);
+    for (auto& v : buf) v = static_cast<UWORD16>(dist(rng));
+    return buf;
+  }();
+  return g_src16_buf;
+}
+
+const std::vector<WORD16>& getSrcW16Buf() {
+  static const std::vector<WORD16> g_srcw16_buf = []() {
+    std::vector<WORD16> buf(kMaxSize * kMaxHeight * 4);
+    std::mt19937 rng(54321);
+    std::uniform_int_distribution<int> dist(-16384, 16383);
+    for (auto& v : buf) v = static_cast<WORD16>(dist(rng));
+    return buf;
+  }();
+  return g_srcw16_buf;
+}
+
 std::string get_arch_str(IV_ARCH_T arch) {
   std::string arch_str;
   switch (arch) {
