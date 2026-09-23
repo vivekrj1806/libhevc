@@ -201,4 +201,15 @@ void ihevcd_init_function_ptr_sse42(func_selector_t *ps_func_selector)
     ps_func_selector->ihevc_hbd_intra_pred_chroma_mode_27_to_33_fptr    = &ihevc_hbd_intra_pred_chroma_mode_27_to_33_sse42;
     ps_func_selector->ihevc_hbd_intra_pred_chroma_ref_substitution_fptr = &ihevc_hbd_intra_pred_chroma_ref_substitution;
     ps_func_selector->ihevc_hbd_intra_pred_chroma_ref_filtering_fptr    = &ihevc_hbd_intra_pred_chroma_ref_filtering;
+
+    /* HBD functions for IT-recon */
+    ps_func_selector->ihevc_hbd_itrans_recon_4x4_ttype1_fptr            = &ihevc_hbd_itrans_recon_4x4_ttype1_sse42;
+    ps_func_selector->ihevc_hbd_itrans_recon_4x4_fptr                   = &ihevc_hbd_itrans_recon_4x4_sse42;
+    ps_func_selector->ihevc_hbd_itrans_recon_8x8_fptr                   = &ihevc_hbd_itrans_recon_8x8_sse42;
+    ps_func_selector->ihevc_hbd_itrans_recon_16x16_fptr                 = &ihevc_hbd_itrans_recon_16x16_sse42;
+    ps_func_selector->ihevc_hbd_itrans_recon_32x32_fptr                 = &ihevc_hbd_itrans_recon_32x32_sse42;
+    ps_func_selector->ihevc_hbd_chroma_itrans_recon_4x4_fptr            = &ihevc_hbd_chroma_itrans_recon_4x4_sse42;
+    ps_func_selector->ihevc_hbd_chroma_itrans_recon_8x8_fptr            = &ihevc_hbd_chroma_itrans_recon_8x8_sse42;
+    ps_func_selector->ihevc_hbd_chroma_itrans_recon_16x16_fptr          = &ihevc_hbd_chroma_itrans_recon_16x16_sse42;
+    ps_func_selector->ihevc_hbd_chroma_itrans_recon_32x32_fptr          = &ihevc_hbd_chroma_itrans_recon_32x32;
 }

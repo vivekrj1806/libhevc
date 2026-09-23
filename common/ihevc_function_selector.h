@@ -195,6 +195,16 @@ typedef struct
     ihevc_hbd_intra_pred_chroma_mode_27_to_33_ft *ihevc_hbd_intra_pred_chroma_mode_27_to_33_fptr;
     ihevc_hbd_intra_pred_chroma_ref_substitution_ft *ihevc_hbd_intra_pred_chroma_ref_substitution_fptr;
     ihevc_hbd_intra_pred_chroma_ref_filtering_ft *ihevc_hbd_intra_pred_chroma_ref_filtering_fptr;
+    /* HBD functions for itrans_recon */
+    ihevc_hbd_itrans_recon_4x4_ttype1_ft *ihevc_hbd_itrans_recon_4x4_ttype1_fptr;
+    ihevc_hbd_itrans_recon_4x4_ft *ihevc_hbd_itrans_recon_4x4_fptr;
+    ihevc_hbd_itrans_recon_8x8_ft *ihevc_hbd_itrans_recon_8x8_fptr;
+    ihevc_hbd_itrans_recon_16x16_ft *ihevc_hbd_itrans_recon_16x16_fptr;
+    ihevc_hbd_itrans_recon_32x32_ft *ihevc_hbd_itrans_recon_32x32_fptr;
+    ihevc_hbd_chroma_itrans_recon_4x4_ft *ihevc_hbd_chroma_itrans_recon_4x4_fptr;
+    ihevc_hbd_chroma_itrans_recon_8x8_ft *ihevc_hbd_chroma_itrans_recon_8x8_fptr;
+    ihevc_hbd_chroma_itrans_recon_16x16_ft *ihevc_hbd_chroma_itrans_recon_16x16_fptr;
+    ihevc_hbd_chroma_itrans_recon_32x32_ft *ihevc_hbd_chroma_itrans_recon_32x32_fptr;
 }ihevc_func_selector_t;
 
 

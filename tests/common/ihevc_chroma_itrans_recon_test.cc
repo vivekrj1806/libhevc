@@ -174,4 +174,112 @@ INSTANTIATE_TEST_SUITE_P(
     ::testing::ValuesIn(GenerateChromaITransReconTestParams()),
     PrintChromaITransReconTestParam);
 
+class ChromaITransReconHbdTest
+    : public ::testing::TestWithParam<ITransReconTestParam> {
+ protected:
+  void SetUp() override {
+    std::tie(trans_size, arch, num_non_zero_rows, num_non_zero_cols) =
+        GetParam();
+
+    src_strd = trans_size;
+    pred_strd = 2 * trans_size;
+    dst_strd = 2 * trans_size;
+
+    pi2_src.resize(trans_size * trans_size);
+    pi2_tmp.resize(trans_size * trans_size);
+    pu2_pred.resize(pred_strd * trans_size);
+    pu2_dst_ref.resize(dst_strd * trans_size);
+    pu2_dst_tst.resize(dst_strd * trans_size);
+
+    ref = get_ref_func_ptr();
+    tst = get_tst_func_ptr(arch);
+  }
+
+  template <typename FuncPtr>
+  void RunTest(FuncPtr func_ptr) {
+    std::mt19937 rng(0);
+    std::uniform_int_distribution<int16_t> coeff_dist_full(-32768, 32767);
+    std::uniform_int_distribution<uint16_t> pixel_dist(0, 1023);
+
+    std::fill(pi2_src.begin(), pi2_src.end(), 0);
+    for (int i = 0; i < trans_size; i++) {
+      for (int j = 0; j < trans_size; j++) {
+        if (i < num_non_zero_rows && j < num_non_zero_cols) {
+          pi2_src[i * src_strd + j] = coeff_dist_full(rng);
+        }
+      }
+    }
+
+    for (auto& v : pu2_pred) {
+      v = pixel_dist(rng);
+    }
+
+    std::fill(pu2_dst_ref.begin(), pu2_dst_ref.end(), 0xAA);
+    std::fill(pu2_dst_tst.begin(), pu2_dst_tst.end(), 0xAA);
+
+    WORD32 non_zero_rows_mask = 0;
+    for (int i = 0; i < num_non_zero_rows && i < trans_size; i++) {
+      non_zero_rows_mask |= (1u << i);
+    }
+
+    WORD32 non_zero_cols_mask = 0;
+    for (int j = 0; j < num_non_zero_cols && j < trans_size; j++) {
+      non_zero_cols_mask |= (1u << j);
+    }
+
+    WORD32 mask = (trans_size == 32)
+                      ? 0xFFFFFFFFu
+                      : ((static_cast<WORD32>(1u) << trans_size) - 1u);
+    WORD32 zero_cols = (~non_zero_cols_mask) & mask;
+    WORD32 zero_rows = (~non_zero_rows_mask) & mask;
+
+    UWORD8 bit_depth = 10;
+    // 1. Reference path (generic C)
+    (ref->*func_ptr)(pi2_src.data(), pi2_tmp.data(), pu2_pred.data(),
+                     pu2_dst_ref.data(), src_strd, pred_strd, dst_strd,
+                     zero_cols, zero_rows, bit_depth);
+
+    // 2. Test path (SIMD)
+    (tst->*func_ptr)(pi2_src.data(), pi2_tmp.data(), pu2_pred.data(),
+                     pu2_dst_tst.data(), src_strd, pred_strd, dst_strd,
+                     zero_cols, zero_rows, bit_depth);
+
+    ASSERT_NO_FATAL_FAILURE(compare_output<UWORD16>(
+        pu2_dst_ref, pu2_dst_tst, 2 * trans_size, trans_size, dst_strd));
+  }
+
+  int trans_size;
+  IV_ARCH_T arch;
+  const ihevc_func_selector_t* ref;
+  const ihevc_func_selector_t* tst;
+
+  WORD32 src_strd;
+  WORD32 pred_strd;
+  WORD32 dst_strd;
+  WORD32 num_non_zero_rows;
+  WORD32 num_non_zero_cols;
+  std::vector<WORD16> pi2_src;
+  std::vector<WORD16> pi2_tmp;
+  std::vector<UWORD16> pu2_pred;
+  std::vector<UWORD16> pu2_dst_ref;
+  std::vector<UWORD16> pu2_dst_tst;
+};
+
+TEST_P(ChromaITransReconHbdTest, Run) {
+  if (trans_size == 4) {
+    RunTest(&ihevc_func_selector_t::ihevc_hbd_chroma_itrans_recon_4x4_fptr);
+  } else if (trans_size == 8) {
+    RunTest(&ihevc_func_selector_t::ihevc_hbd_chroma_itrans_recon_8x8_fptr);
+  } else if (trans_size == 16) {
+    RunTest(&ihevc_func_selector_t::ihevc_hbd_chroma_itrans_recon_16x16_fptr);
+  } else if (trans_size == 32) {
+    RunTest(&ihevc_func_selector_t::ihevc_hbd_chroma_itrans_recon_32x32_fptr);
+  }
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    ChromaITransReconHbd, ChromaITransReconHbdTest,
+    ::testing::ValuesIn(GenerateChromaITransReconTestParams()),
+    PrintChromaITransReconTestParam);
+
 }  // namespace
