@@ -169,6 +169,32 @@ typedef struct
     ihevc_hbd_sao_edge_offset_class2_chroma_ft *ihevc_hbd_sao_edge_offset_class2_chroma_fptr;
     ihevc_hbd_sao_edge_offset_class3_ft *ihevc_hbd_sao_edge_offset_class3_fptr;
     ihevc_hbd_sao_edge_offset_class3_chroma_ft *ihevc_hbd_sao_edge_offset_class3_chroma_fptr;
+    /* HBD functions for intra pred */
+    ihevc_hbd_intra_pred_luma_planar_ft *ihevc_hbd_intra_pred_luma_planar_fptr;
+    ihevc_hbd_intra_pred_luma_dc_ft *ihevc_hbd_intra_pred_luma_dc_fptr;
+    ihevc_hbd_intra_pred_luma_mode2_ft *ihevc_hbd_intra_pred_luma_mode2_fptr;
+    ihevc_hbd_intra_pred_luma_mode_3_to_9_ft *ihevc_hbd_intra_pred_luma_mode_3_to_9_fptr;
+    ihevc_hbd_intra_pred_luma_horz_ft *ihevc_hbd_intra_pred_luma_horz_fptr;
+    ihevc_hbd_intra_pred_luma_mode_11_to_17_ft *ihevc_hbd_intra_pred_luma_mode_11_to_17_fptr;
+    ihevc_hbd_intra_pred_luma_mode_18_34_ft *ihevc_hbd_intra_pred_luma_mode_18_34_fptr;
+    ihevc_hbd_intra_pred_luma_mode_19_to_25_ft *ihevc_hbd_intra_pred_luma_mode_19_to_25_fptr;
+    ihevc_hbd_intra_pred_luma_ver_ft *ihevc_hbd_intra_pred_luma_ver_fptr;
+    ihevc_hbd_intra_pred_luma_mode_27_to_33_ft *ihevc_hbd_intra_pred_luma_mode_27_to_33_fptr;
+    ihevc_hbd_intra_pred_luma_ref_substitution_ft *ihevc_hbd_intra_pred_luma_ref_substitution_fptr;
+    ihevc_hbd_intra_pred_ref_filtering_ft *ihevc_hbd_intra_pred_ref_filtering_fptr;
+
+    ihevc_hbd_intra_pred_chroma_planar_ft *ihevc_hbd_intra_pred_chroma_planar_fptr;
+    ihevc_hbd_intra_pred_chroma_dc_ft *ihevc_hbd_intra_pred_chroma_dc_fptr;
+    ihevc_hbd_intra_pred_chroma_mode2_ft *ihevc_hbd_intra_pred_chroma_mode2_fptr;
+    ihevc_hbd_intra_pred_chroma_mode_3_to_9_ft *ihevc_hbd_intra_pred_chroma_mode_3_to_9_fptr;
+    ihevc_hbd_intra_pred_chroma_horz_ft *ihevc_hbd_intra_pred_chroma_horz_fptr;
+    ihevc_hbd_intra_pred_chroma_mode_11_to_17_ft *ihevc_hbd_intra_pred_chroma_mode_11_to_17_fptr;
+    ihevc_hbd_intra_pred_chroma_mode_18_34_ft *ihevc_hbd_intra_pred_chroma_mode_18_34_fptr;
+    ihevc_hbd_intra_pred_chroma_mode_19_to_25_ft *ihevc_hbd_intra_pred_chroma_mode_19_to_25_fptr;
+    ihevc_hbd_intra_pred_chroma_ver_ft *ihevc_hbd_intra_pred_chroma_ver_fptr;
+    ihevc_hbd_intra_pred_chroma_mode_27_to_33_ft *ihevc_hbd_intra_pred_chroma_mode_27_to_33_fptr;
+    ihevc_hbd_intra_pred_chroma_ref_substitution_ft *ihevc_hbd_intra_pred_chroma_ref_substitution_fptr;
+    ihevc_hbd_intra_pred_chroma_ref_filtering_ft *ihevc_hbd_intra_pred_chroma_ref_filtering_fptr;
 }ihevc_func_selector_t;
 
 
