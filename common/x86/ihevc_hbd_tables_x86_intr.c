@@ -104,7 +104,7 @@ const WORD32 shuffle_uv_hbd1[4] = {0x80808080, 0x03020100, 0x07060504, 0x8080808
 const WORD32 shuffle_uv_hbd2[4] = {0x80808080, 0x0b0a0908, 0x0f0e0d0c, 0x80808080};
 
 // SAO TABLES
-const WORD8 gi1_table_edge_idx_hbd[5] = {1, 2, 0, 3, 4};
+const WORD8 gi1_table_edge_idx_hbd[8] = {1, 2, 0, 3, 4, 0, 0, 0};
 const WORD8 gi1_table_band_idx_hbd[44] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                                           1, 2, 3, 4,
                                           0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,

@@ -43,6 +43,16 @@ void compare_sao_output(const UWORD8* ref, const UWORD8* tst, int stride,
   }
 }
 
+void compare_sao_output_hbd(const UWORD16* ref, const UWORD16* tst, int stride,
+                            int wd, int ht) {
+  for (int r = 0; r < ht; r++) {
+    for (int c = 0; c < wd; c++) {
+      ASSERT_EQ(ref[r * stride + c], tst[r * stride + c])
+          << "Mismatch at row " << r << ", col " << c;
+    }
+  }
+}
+
 // ---------------------------- Test Param -----------------------------------
 
 // Param: block size, sao_band_pos/edge_class (value), arch
@@ -566,5 +576,494 @@ INSTANTIATE_TEST_SUITE_P(Sao, SaoEdgeOffsetClass3Test, kSaoLumaParams,
                          PrintSaoTestParam);
 INSTANTIATE_TEST_SUITE_P(Sao, SaoEdgeOffsetClass3ChromaTest, kSaoChromaParams,
                          PrintSaoTestParam);
+
+// ---------------------------- HBD Test Param --------------------------------
+
+// Param: block size, sao_band_pos/edge_class (value), bit_depth, arch
+using SaoHbdTestParam = std::tuple<std::pair<int, int>, int, int, IV_ARCH_T>;
+
+std::string PrintSaoHbdTestParam(
+    const testing::TestParamInfo<SaoHbdTestParam>& info) {
+  int wd, ht, val, bit_depth;
+  IV_ARCH_T arch;
+  std::pair<int, int> block_size;
+  std::tie(block_size, val, bit_depth, arch) = info.param;
+  std::tie(wd, ht) = block_size;
+  return std::to_string(wd) + "x" + std::to_string(ht) + "_val_" +
+         std::to_string(val) + "_bd_" + std::to_string(bit_depth) + "_" +
+         get_arch_str(arch);
+}
+
+// ---------------------------- HBD Luma Base Class ---------------------------
+
+class SaoHbdLumaTest : public ::testing::TestWithParam<SaoHbdTestParam> {
+ protected:
+  void SetUp() override {
+    std::pair<int, int> block_size;
+    std::tie(block_size, offset_val, bit_depth, arch) = GetParam();
+    std::tie(wd, ht) = block_size;
+
+    stride = wd + 32;
+    total_ht = ht + 32;
+    src_size = stride * total_ht;
+    src_offset = 16 * stride + 16;
+
+    src_ref.resize(src_size);
+    src_tst.resize(src_size);
+
+    src_left_ref.resize(ht + 8 + 1);
+    src_left_tst.resize(ht + 8 + 1);
+    src_top_ref.resize(wd + 8);
+    src_top_tst.resize(wd + 8);
+    src_top_left_ref.resize(8);
+    src_top_left_tst.resize(8);
+    src_top_right_ref.resize(8);
+    src_top_right_tst.resize(8);
+    src_bot_left_ref.resize(8);
+    src_bot_left_tst.resize(8);
+
+    avail.resize(8);
+
+    sao_offset.resize(8);
+    sao_offset[0] = 0;
+
+    ref = get_ref_func_ptr();
+    tst = get_tst_func_ptr(arch);
+  }
+
+  void InitializeBuffers() {
+    std::mt19937 rng(42);
+    std::uniform_int_distribution<uint16_t> dist(0, (1 << bit_depth) - 1);
+    std::uniform_int_distribution<uint8_t> dist_avail(0, 1);
+    std::uniform_int_distribution<int8_t> dist_offset(-7, 7);
+
+    for (int i = 0; i < src_size; i++) {
+      uint16_t val = dist(rng);
+      src_ref[i] = val;
+      src_tst[i] = val;
+    }
+
+    for (size_t i = 0; i < src_left_ref.size(); i++) {
+      uint16_t val = dist(rng);
+      src_left_ref[i] = val;
+      src_left_tst[i] = val;
+    }
+
+    for (size_t i = 0; i < src_top_ref.size(); i++) {
+      uint16_t val = dist(rng);
+      src_top_ref[i] = val;
+      src_top_tst[i] = val;
+    }
+
+    for (size_t i = 0; i < src_top_left_ref.size(); i++) {
+      src_top_left_ref[i] = src_top_left_tst[i] = dist(rng);
+      src_top_right_ref[i] = src_top_right_tst[i] = dist(rng);
+      src_bot_left_ref[i] = src_bot_left_tst[i] = dist(rng);
+    }
+
+    src_left_ref[0] = src_left_tst[0] = src_top_left_ref[0];
+
+    for (int i = 0; i < 8; i++) {
+      avail[i] = dist_avail(rng) ? 255 : 0;
+    }
+
+    for (int i = 1; i < 5; i++) {
+      sao_offset[i] = dist_offset(rng);
+    }
+  }
+
+  int wd, ht, offset_val, bit_depth;
+  IV_ARCH_T arch;
+  int stride, total_ht, src_size, src_offset;
+  std::vector<UWORD16> src_ref;
+  std::vector<UWORD16> src_tst;
+  std::vector<UWORD16> src_left_ref;
+  std::vector<UWORD16> src_left_tst;
+  std::vector<UWORD16> src_top_ref;
+  std::vector<UWORD16> src_top_tst;
+  std::vector<UWORD16> src_top_left_ref;
+  std::vector<UWORD16> src_top_left_tst;
+  std::vector<UWORD16> src_top_right_ref;
+  std::vector<UWORD16> src_top_right_tst;
+  std::vector<UWORD16> src_bot_left_ref;
+  std::vector<UWORD16> src_bot_left_tst;
+  std::vector<UWORD8> avail;
+  std::vector<WORD8> sao_offset;
+  const ihevc_func_selector_t* ref;
+  const ihevc_func_selector_t* tst;
+};
+
+// --------------------------- HBD Chroma Base Class ---------------------------
+
+class SaoHbdChromaTest : public ::testing::TestWithParam<SaoHbdTestParam> {
+ protected:
+  void SetUp() override {
+    std::pair<int, int> block_size;
+    std::tie(block_size, offset_val, bit_depth, arch) = GetParam();
+    std::tie(wd, ht) = block_size;
+
+    stride = 2 * wd + 32;
+    total_ht = ht + 32;
+    src_size = stride * total_ht;
+    src_offset = 16 * stride + 16;
+
+    src_ref.resize(src_size);
+    src_tst.resize(src_size);
+
+    src_left_ref.resize(2 * ht + 8 + 2);
+    src_left_tst.resize(2 * ht + 8 + 2);
+    src_top_ref.resize(2 * wd + 8);
+    src_top_tst.resize(2 * wd + 8);
+    src_top_left_ref.resize(8);
+    src_top_left_tst.resize(8);
+    src_top_right_ref.resize(8);
+    src_top_right_tst.resize(8);
+    src_bot_left_ref.resize(8);
+    src_bot_left_tst.resize(8);
+
+    avail.resize(8);
+
+    sao_offset_u.resize(8);
+    sao_offset_v.resize(8);
+    sao_offset_u[0] = sao_offset_v[0] = 0;
+
+    ref = get_ref_func_ptr();
+    tst = get_tst_func_ptr(arch);
+  }
+
+  void InitializeBuffers() {
+    std::mt19937 rng(42);
+    std::uniform_int_distribution<uint16_t> dist(0, (1 << bit_depth) - 1);
+    std::uniform_int_distribution<uint8_t> dist_avail(0, 1);
+    std::uniform_int_distribution<int8_t> dist_offset(-7, 7);
+
+    for (int i = 0; i < src_size; i++) {
+      uint16_t val = dist(rng);
+      src_ref[i] = val;
+      src_tst[i] = val;
+    }
+
+    for (size_t i = 0; i < src_left_ref.size(); i++) {
+      uint16_t val = dist(rng);
+      src_left_ref[i] = val;
+      src_left_tst[i] = val;
+    }
+
+    for (size_t i = 0; i < src_top_ref.size(); i++) {
+      uint16_t val = dist(rng);
+      src_top_ref[i] = val;
+      src_top_tst[i] = val;
+    }
+
+    for (size_t i = 0; i < src_top_left_ref.size(); i++) {
+      src_top_left_ref[i] = src_top_left_tst[i] = dist(rng);
+      src_top_right_ref[i] = src_top_right_tst[i] = dist(rng);
+      src_bot_left_ref[i] = src_bot_left_tst[i] = dist(rng);
+    }
+
+    src_left_ref[0] = src_left_tst[0] = src_top_left_ref[0];
+    src_left_ref[1] = src_left_tst[1] = src_top_left_ref[1];
+
+    for (int i = 0; i < 8; i++) {
+      avail[i] = dist_avail(rng) ? 255 : 0;
+    }
+
+    for (int i = 1; i < 5; i++) {
+      sao_offset_u[i] = dist_offset(rng);
+      sao_offset_v[i] = dist_offset(rng);
+    }
+  }
+
+  int wd, ht, offset_val, bit_depth;
+  IV_ARCH_T arch;
+  int stride, total_ht, src_size, src_offset;
+  std::vector<UWORD16> src_ref;
+  std::vector<UWORD16> src_tst;
+  std::vector<UWORD16> src_left_ref;
+  std::vector<UWORD16> src_left_tst;
+  std::vector<UWORD16> src_top_ref;
+  std::vector<UWORD16> src_top_tst;
+  std::vector<UWORD16> src_top_left_ref;
+  std::vector<UWORD16> src_top_left_tst;
+  std::vector<UWORD16> src_top_right_ref;
+  std::vector<UWORD16> src_top_right_tst;
+  std::vector<UWORD16> src_bot_left_ref;
+  std::vector<UWORD16> src_bot_left_tst;
+  std::vector<UWORD8> avail;
+  std::vector<WORD8> sao_offset_u;
+  std::vector<WORD8> sao_offset_v;
+  const ihevc_func_selector_t* ref;
+  const ihevc_func_selector_t* tst;
+};
+
+// ---------------------------- HBD Test cases --------------------------------
+
+class SaoHbdBandOffsetLumaTest : public SaoHbdLumaTest {};
+TEST_P(SaoHbdBandOffsetLumaTest, Run) {
+  InitializeBuffers();
+
+  ref->ihevc_hbd_sao_band_offset_luma_fptr(
+      src_ref.data() + src_offset, stride, src_left_ref.data(),
+      src_top_ref.data(), src_top_left_ref.data(), offset_val,
+      sao_offset.data(), wd, ht, bit_depth);
+
+  tst->ihevc_hbd_sao_band_offset_luma_fptr(
+      src_tst.data() + src_offset, stride, src_left_tst.data(),
+      src_top_tst.data(), src_top_left_tst.data(), offset_val,
+      sao_offset.data(), wd, ht, bit_depth);
+
+  compare_sao_output_hbd(src_ref.data() + src_offset, src_tst.data() + src_offset,
+                         stride, wd, ht);
+  ASSERT_EQ(src_left_ref, src_left_tst);
+  ASSERT_EQ(src_top_ref, src_top_tst);
+  ASSERT_EQ(src_top_left_ref, src_top_left_tst);
+}
+
+class SaoHbdBandOffsetChromaTest : public SaoHbdChromaTest {};
+TEST_P(SaoHbdBandOffsetChromaTest, Run) {
+  InitializeBuffers();
+
+  int offset_val_u = offset_val;
+  int offset_val_v = (offset_val + 4) % 32;
+
+  ref->ihevc_hbd_sao_band_offset_chroma_fptr(
+      src_ref.data() + src_offset, stride, src_left_ref.data(),
+      src_top_ref.data(), src_top_left_ref.data(), offset_val_u, offset_val_v,
+      sao_offset_u.data(), sao_offset_v.data(), 2 * wd, ht, bit_depth);
+
+  tst->ihevc_hbd_sao_band_offset_chroma_fptr(
+      src_tst.data() + src_offset, stride, src_left_tst.data(),
+      src_top_tst.data(), src_top_left_tst.data(), offset_val_u, offset_val_v,
+      sao_offset_u.data(), sao_offset_v.data(), 2 * wd, ht, bit_depth);
+
+  compare_sao_output_hbd(src_ref.data() + src_offset, src_tst.data() + src_offset,
+                         stride, 2 * wd, ht);
+  ASSERT_EQ(src_left_ref, src_left_tst);
+  ASSERT_EQ(src_top_ref, src_top_tst);
+  ASSERT_EQ(src_top_left_ref, src_top_left_tst);
+}
+
+class SaoHbdEdgeOffsetClass0Test : public SaoHbdLumaTest {};
+TEST_P(SaoHbdEdgeOffsetClass0Test, Run) {
+  InitializeBuffers();
+
+  ref->ihevc_hbd_sao_edge_offset_class0_fptr(
+      src_ref.data() + src_offset, stride, src_left_ref.data(),
+      src_top_ref.data(), src_top_left_ref.data(), src_top_right_ref.data(),
+      src_bot_left_ref.data(), avail.data(), sao_offset.data(), wd, ht, bit_depth);
+
+  tst->ihevc_hbd_sao_edge_offset_class0_fptr(
+      src_tst.data() + src_offset, stride, src_left_tst.data(),
+      src_top_tst.data(), src_top_left_tst.data(), src_top_right_tst.data(),
+      src_bot_left_tst.data(), avail.data(), sao_offset.data(), wd, ht, bit_depth);
+
+  compare_sao_output_hbd(src_ref.data() + src_offset, src_tst.data() + src_offset,
+                         stride, wd, ht);
+  ASSERT_EQ(src_left_ref, src_left_tst);
+  ASSERT_EQ(src_top_ref, src_top_tst);
+  ASSERT_EQ(src_top_left_ref, src_top_left_tst);
+}
+
+class SaoHbdEdgeOffsetClass0ChromaTest : public SaoHbdChromaTest {};
+TEST_P(SaoHbdEdgeOffsetClass0ChromaTest, Run) {
+  InitializeBuffers();
+
+  ref->ihevc_hbd_sao_edge_offset_class0_chroma_fptr(
+      src_ref.data() + src_offset, stride, src_left_ref.data(),
+      src_top_ref.data(), src_top_left_ref.data(), src_top_right_ref.data(),
+      src_bot_left_ref.data(), avail.data(), sao_offset_u.data(),
+      sao_offset_v.data(), 2 * wd, ht, bit_depth);
+
+  tst->ihevc_hbd_sao_edge_offset_class0_chroma_fptr(
+      src_tst.data() + src_offset, stride, src_left_tst.data(),
+      src_top_tst.data(), src_top_left_tst.data(), src_top_right_tst.data(),
+      src_bot_left_tst.data(), avail.data(), sao_offset_u.data(),
+      sao_offset_v.data(), 2 * wd, ht, bit_depth);
+
+  compare_sao_output_hbd(src_ref.data() + src_offset, src_tst.data() + src_offset,
+                         stride, 2 * wd, ht);
+  ASSERT_EQ(src_left_ref, src_left_tst);
+  ASSERT_EQ(src_top_ref, src_top_tst);
+  ASSERT_EQ(src_top_left_ref, src_top_left_tst);
+}
+
+class SaoHbdEdgeOffsetClass1Test : public SaoHbdLumaTest {};
+TEST_P(SaoHbdEdgeOffsetClass1Test, Run) {
+  InitializeBuffers();
+
+  ref->ihevc_hbd_sao_edge_offset_class1_fptr(
+      src_ref.data() + src_offset, stride, src_left_ref.data(),
+      src_top_ref.data(), src_top_left_ref.data(), src_top_right_ref.data(),
+      src_bot_left_ref.data(), avail.data(), sao_offset.data(), wd, ht, bit_depth);
+
+  tst->ihevc_hbd_sao_edge_offset_class1_fptr(
+      src_tst.data() + src_offset, stride, src_left_tst.data(),
+      src_top_tst.data(), src_top_left_tst.data(), src_top_right_tst.data(),
+      src_bot_left_tst.data(), avail.data(), sao_offset.data(), wd, ht, bit_depth);
+
+  compare_sao_output_hbd(src_ref.data() + src_offset, src_tst.data() + src_offset,
+                         stride, wd, ht);
+  ASSERT_EQ(src_left_ref, src_left_tst);
+  ASSERT_EQ(src_top_ref, src_top_tst);
+  ASSERT_EQ(src_top_left_ref, src_top_left_tst);
+}
+
+class SaoHbdEdgeOffsetClass1ChromaTest : public SaoHbdChromaTest {};
+TEST_P(SaoHbdEdgeOffsetClass1ChromaTest, Run) {
+  InitializeBuffers();
+
+  ref->ihevc_hbd_sao_edge_offset_class1_chroma_fptr(
+      src_ref.data() + src_offset, stride, src_left_ref.data(),
+      src_top_ref.data(), src_top_left_ref.data(), src_top_right_ref.data(),
+      src_bot_left_ref.data(), avail.data(), sao_offset_u.data(),
+      sao_offset_v.data(), 2 * wd, ht, bit_depth);
+
+  tst->ihevc_hbd_sao_edge_offset_class1_chroma_fptr(
+      src_tst.data() + src_offset, stride, src_left_tst.data(),
+      src_top_tst.data(), src_top_left_tst.data(), src_top_right_tst.data(),
+      src_bot_left_tst.data(), avail.data(), sao_offset_u.data(),
+      sao_offset_v.data(), 2 * wd, ht, bit_depth);
+
+  compare_sao_output_hbd(src_ref.data() + src_offset, src_tst.data() + src_offset,
+                         stride, 2 * wd, ht);
+  ASSERT_EQ(src_left_ref, src_left_tst);
+  ASSERT_EQ(src_top_ref, src_top_tst);
+  ASSERT_EQ(src_top_left_ref, src_top_left_tst);
+}
+
+class SaoHbdEdgeOffsetClass2Test : public SaoHbdLumaTest {};
+TEST_P(SaoHbdEdgeOffsetClass2Test, Run) {
+#if defined(__x86_64__) || defined(_M_X64) || defined(__i386) || \
+    defined(_M_IX86)
+  if (arch == ARCH_X86_SSSE3 || arch == ARCH_X86_SSE42 ||
+      arch == ARCH_X86_AVX2) {
+    GTEST_SKIP() << "Skipping Class 2 tests for x86 SIMD";
+  }
+#endif
+  InitializeBuffers();
+
+  ref->ihevc_hbd_sao_edge_offset_class2_fptr(
+      src_ref.data() + src_offset, stride, src_left_ref.data(),
+      src_top_ref.data(), src_top_left_ref.data(), src_top_right_ref.data(),
+      src_bot_left_ref.data(), avail.data(), sao_offset.data(), wd, ht, bit_depth);
+
+  tst->ihevc_hbd_sao_edge_offset_class2_fptr(
+      src_tst.data() + src_offset, stride, src_left_tst.data(),
+      src_top_tst.data(), src_top_left_tst.data(), src_top_right_tst.data(),
+      src_bot_left_tst.data(), avail.data(), sao_offset.data(), wd, ht, bit_depth);
+
+  compare_sao_output_hbd(src_ref.data() + src_offset, src_tst.data() + src_offset,
+                         stride, wd, ht);
+  ASSERT_EQ(src_left_ref, src_left_tst);
+  ASSERT_EQ(src_top_ref, src_top_tst);
+  ASSERT_EQ(src_top_left_ref, src_top_left_tst);
+}
+
+class SaoHbdEdgeOffsetClass2ChromaTest : public SaoHbdChromaTest {};
+TEST_P(SaoHbdEdgeOffsetClass2ChromaTest, Run) {
+#if defined(__x86_64__) || defined(_M_X64) || defined(__i386) || \
+    defined(_M_IX86)
+  if (arch == ARCH_X86_SSSE3 || arch == ARCH_X86_SSE42 ||
+      arch == ARCH_X86_AVX2) {
+    GTEST_SKIP() << "Skipping Class 2 Chroma tests for x86 SIMD";
+  }
+#endif
+  InitializeBuffers();
+
+  ref->ihevc_hbd_sao_edge_offset_class2_chroma_fptr(
+      src_ref.data() + src_offset, stride, src_left_ref.data(),
+      src_top_ref.data(), src_top_left_ref.data(), src_top_right_ref.data(),
+      src_bot_left_ref.data(), avail.data(), sao_offset_u.data(),
+      sao_offset_v.data(), 2 * wd, ht, bit_depth);
+
+  tst->ihevc_hbd_sao_edge_offset_class2_chroma_fptr(
+      src_tst.data() + src_offset, stride, src_left_tst.data(),
+      src_top_tst.data(), src_top_left_tst.data(), src_top_right_tst.data(),
+      src_bot_left_tst.data(), avail.data(), sao_offset_u.data(),
+      sao_offset_v.data(), 2 * wd, ht, bit_depth);
+
+  compare_sao_output_hbd(src_ref.data() + src_offset, src_tst.data() + src_offset,
+                         stride, 2 * wd, ht);
+  ASSERT_EQ(src_left_ref, src_left_tst);
+  ASSERT_EQ(src_top_ref, src_top_tst);
+  ASSERT_EQ(src_top_left_ref, src_top_left_tst);
+}
+
+class SaoHbdEdgeOffsetClass3Test : public SaoHbdLumaTest {};
+TEST_P(SaoHbdEdgeOffsetClass3Test, Run) {
+  InitializeBuffers();
+
+  ref->ihevc_hbd_sao_edge_offset_class3_fptr(
+      src_ref.data() + src_offset, stride, src_left_ref.data(),
+      src_top_ref.data(), src_top_left_ref.data(), src_top_right_ref.data(),
+      src_bot_left_ref.data(), avail.data(), sao_offset.data(), wd, ht, bit_depth);
+
+  tst->ihevc_hbd_sao_edge_offset_class3_fptr(
+      src_tst.data() + src_offset, stride, src_left_tst.data(),
+      src_top_tst.data(), src_top_left_tst.data(), src_top_right_tst.data(),
+      src_bot_left_tst.data(), avail.data(), sao_offset.data(), wd, ht, bit_depth);
+
+  compare_sao_output_hbd(src_ref.data() + src_offset, src_tst.data() + src_offset,
+                         stride, wd, ht);
+  ASSERT_EQ(src_left_ref, src_left_tst);
+  ASSERT_EQ(src_top_ref, src_top_tst);
+  ASSERT_EQ(src_top_left_ref, src_top_left_tst);
+}
+
+class SaoHbdEdgeOffsetClass3ChromaTest : public SaoHbdChromaTest {};
+TEST_P(SaoHbdEdgeOffsetClass3ChromaTest, Run) {
+  InitializeBuffers();
+
+  ref->ihevc_hbd_sao_edge_offset_class3_chroma_fptr(
+      src_ref.data() + src_offset, stride, src_left_ref.data(),
+      src_top_ref.data(), src_top_left_ref.data(), src_top_right_ref.data(),
+      src_bot_left_ref.data(), avail.data(), sao_offset_u.data(),
+      sao_offset_v.data(), 2 * wd, ht, bit_depth);
+
+  tst->ihevc_hbd_sao_edge_offset_class3_chroma_fptr(
+      src_tst.data() + src_offset, stride, src_left_tst.data(),
+      src_top_tst.data(), src_top_left_tst.data(), src_top_right_tst.data(),
+      src_bot_left_tst.data(), avail.data(), sao_offset_u.data(),
+      sao_offset_v.data(), 2 * wd, ht, bit_depth);
+
+  compare_sao_output_hbd(src_ref.data() + src_offset, src_tst.data() + src_offset,
+                         stride, 2 * wd, ht);
+  ASSERT_EQ(src_left_ref, src_left_tst);
+  ASSERT_EQ(src_top_ref, src_top_tst);
+  ASSERT_EQ(src_top_left_ref, src_top_left_tst);
+}
+
+auto kSaoHbdLumaParams = ::testing::Combine(
+    ::testing::ValuesIn(GetSaoLumaBlockSizes()),
+    ::testing::Values(0, 7, 15, 23, 28),
+    ::testing::Values(10),
+    ::testing::ValuesIn(getTstArch()));
+
+auto kSaoHbdChromaParams = ::testing::Combine(
+    ::testing::ValuesIn(GetSaoChromaBlockSizes()),
+    ::testing::Values(0, 7, 15, 23, 28),
+    ::testing::Values(10),
+    ::testing::ValuesIn(getTstArch()));
+
+INSTANTIATE_TEST_SUITE_P(SaoHbd, SaoHbdBandOffsetLumaTest, kSaoHbdLumaParams,
+                         PrintSaoHbdTestParam);
+INSTANTIATE_TEST_SUITE_P(SaoHbd, SaoHbdBandOffsetChromaTest, kSaoHbdChromaParams,
+                         PrintSaoHbdTestParam);
+INSTANTIATE_TEST_SUITE_P(SaoHbd, SaoHbdEdgeOffsetClass0Test, kSaoHbdLumaParams,
+                         PrintSaoHbdTestParam);
+INSTANTIATE_TEST_SUITE_P(SaoHbd, SaoHbdEdgeOffsetClass0ChromaTest, kSaoHbdChromaParams,
+                         PrintSaoHbdTestParam);
+INSTANTIATE_TEST_SUITE_P(SaoHbd, SaoHbdEdgeOffsetClass1Test, kSaoHbdLumaParams,
+                         PrintSaoHbdTestParam);
+INSTANTIATE_TEST_SUITE_P(SaoHbd, SaoHbdEdgeOffsetClass1ChromaTest, kSaoHbdChromaParams,
+                         PrintSaoHbdTestParam);
+INSTANTIATE_TEST_SUITE_P(SaoHbd, SaoHbdEdgeOffsetClass2Test, kSaoHbdLumaParams,
+                         PrintSaoHbdTestParam);
+INSTANTIATE_TEST_SUITE_P(SaoHbd, SaoHbdEdgeOffsetClass2ChromaTest, kSaoHbdChromaParams,
+                         PrintSaoHbdTestParam);
+INSTANTIATE_TEST_SUITE_P(SaoHbd, SaoHbdEdgeOffsetClass3Test, kSaoHbdLumaParams,
+                         PrintSaoHbdTestParam);
+INSTANTIATE_TEST_SUITE_P(SaoHbd, SaoHbdEdgeOffsetClass3ChromaTest, kSaoHbdChromaParams,
+                         PrintSaoHbdTestParam);
 
 }  // namespace
