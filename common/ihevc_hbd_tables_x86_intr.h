@@ -24,7 +24,7 @@
 *  Declarations for the fucntions defined in  ihevc_intra_pred_filters
 *
 * @author
-*  Ittiam
+*  Mamatha
 *
 *
 * @remarks
@@ -37,13 +37,13 @@
 #define IHEVC_HBD_TABLES_X86_INTR_H_
 
 
-// Luma intra pred
+//Luma intra pred
 extern const UWORD8 IHEVCE_SHUFFLEMASKY1_HBD[16];
 extern const UWORD8 IHEVCE_SHUFFLEMASKY2_HBD[16] ;
 extern const UWORD8 IHEVCE_SHUFFLEMASKY3_HBD[16] ;
 extern const UWORD8 IHEVCE_SHUFFLEMASK4_HBD[16] ;
 extern const UWORD8 IHEVCE_SHUFFLEMASK5_HBD[16] ;
-// Chroma intra pred
+//Chroma intra pred
 extern const UWORD8 IHEVCE_SHUFFLEMASKY7_HBD[16] ;
 
 extern const UWORD8 IHEVCE_SHUFFLEMASKY8_HBD[16] ;
@@ -51,11 +51,11 @@ extern const UWORD8 IHEVCE_SHUFFLEMASKY8_HBD[16] ;
 extern const UWORD8 IHEVCE_SHUFFLEMASKY9_HBD[16] ;
 
 // DEBLOCK TABLES
-extern const WORD16 coef_hbd_d[16] ;
-extern const WORD16 coef_hbd_de1_1[16] ;
-extern const WORD16 coef_hbd_de1_2[16] ;
-extern const WORD16 coef_hbd_dep1_1[16] ;
-extern const WORD16 coef_hbd_dep1_2[16] ;
+extern const WORD16 coef_hbd_d[8];
+extern const WORD16 coef_hbd_de1_1[8];
+extern const WORD16 coef_hbd_de1_2[8];
+extern const WORD16 coef_hbd_dep1_1[8];
+extern const WORD16 coef_hbd_dep1_2[8];
 extern const WORD32 shuffle_hbd_d[4] ;
 extern const WORD32 shuffle0_hbd[2] ;
 extern const WORD32 shuffle1_hbd[4] ;
@@ -67,7 +67,7 @@ extern const WORD16 delta1_hbd[8];
 extern const WORD32 shuffle_uv_hbd[4];
 extern const WORD32 shuffle_uv_hbd1[4];
 extern const WORD32 shuffle_uv_hbd2[4];
-// SAO TABLES
+//SAO  TABLES
 extern  const WORD8 gi1_table_edge_idx_hbd[5] ;
 extern  const WORD8 gi1_table_band_idx_hbd[44];
 extern  const WORD32 gi4_ihevc_hbd_table_edge_idx[5];
@@ -76,4 +76,4 @@ extern  const WORD32 gi4_ihevc_hbd_table_edge_idx[5];
 extern const WORD16 g_ai2_ihevc_trans_16_even_hbd[12][8];
 extern const WORD16 g_ai2_ihevc_trans_16_odd_hbd[32][8];
 
-#endif /* IHEVC_HBD_TABLES_X86_INTR_H_ */
+#endif /*IHEVC_TABLES_X86_INTR_H_*/
