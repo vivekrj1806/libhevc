@@ -223,6 +223,14 @@ typedef struct
     ihevc_hbd_inter_pred_w16out_ft *ihevc_hbd_inter_pred_chroma_vert_w16out_fptr;
     ihevc_hbd_inter_pred_w16inp_ft *ihevc_hbd_inter_pred_chroma_vert_w16inp_fptr;
     ihevc_hbd_inter_pred_w16inp_w16out_ft *ihevc_hbd_inter_pred_chroma_vert_w16inp_w16out_fptr;
+
+    /* HBD functions for weighted pred */
+    ihevc_hbd_weighted_pred_uni_ft                  *ihevc_hbd_weighted_pred_uni_fptr;
+    ihevc_hbd_weighted_pred_bi_ft                   *ihevc_hbd_weighted_pred_bi_fptr;
+    ihevc_hbd_weighted_pred_bi_default_ft           *ihevc_hbd_weighted_pred_bi_default_fptr;
+    ihevc_hbd_weighted_pred_chroma_uni_ft           *ihevc_hbd_weighted_pred_chroma_uni_fptr;
+    ihevc_hbd_weighted_pred_chroma_bi_ft            *ihevc_hbd_weighted_pred_chroma_bi_fptr;
+    ihevc_hbd_weighted_pred_chroma_bi_default_ft    *ihevc_hbd_weighted_pred_chroma_bi_default_fptr;
 }ihevc_func_selector_t;
 
 

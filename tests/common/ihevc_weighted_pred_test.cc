@@ -459,4 +459,408 @@ INSTANTIATE_TEST_SUITE_P(WeightedPred, WeightedPredBiDefaultLumaTest,
 INSTANTIATE_TEST_SUITE_P(WeightedPred, WeightedPredBiDefaultChromaTest,
                          kChromaTestParams, PrintWeightedPredTestParam);
 
+
+// ---------------------------- HBD Test Classes -----------------------------
+
+class WeightedPredUniLumaHbdTest
+    : public ::testing::TestWithParam<WeightedPredTestParam> {
+ protected:
+  void SetUp() override {
+    std::pair<int, int> block_size;
+    std::tie(block_size, src_stride_mul, dst_stride_mul, arch) = GetParam();
+    std::tie(wd, ht) = block_size;
+
+    src_strd = wd * src_stride_mul;
+    dst_strd = wd * dst_stride_mul;
+
+    src_buf.resize(src_strd * ht + 16);
+    dst_buf_ref.resize(dst_strd * ht + 16);
+    dst_buf_tst.resize(dst_strd * ht + 16);
+
+    tst = get_tst_func_ptr(arch);
+    ref = get_ref_func_ptr();
+  }
+
+  int wd, ht, src_stride_mul, dst_stride_mul;
+  int src_strd, dst_strd;
+  std::vector<WORD16> src_buf;
+  std::vector<UWORD16> dst_buf_ref;
+  std::vector<UWORD16> dst_buf_tst;
+  IV_ARCH_T arch;
+  const ihevc_func_selector_t* tst;
+  const ihevc_func_selector_t* ref;
+};
+
+TEST_P(WeightedPredUniLumaHbdTest, Run) {
+  std::mt19937 rng(42);
+  std::uniform_int_distribution<int16_t> src_dist(-8192, 8191);
+  for (auto& v : src_buf) v = src_dist(rng);
+
+  std::uniform_int_distribution<int> wgt_dist(-128, 127);
+  std::uniform_int_distribution<int> off_dist(-128, 127);
+  std::uniform_int_distribution<int> shift_dist(4, 11);
+  std::uniform_int_distribution<int> lvl_shift_dist(0, 1);
+
+  int wgt0 = wgt_dist(rng);
+  int off0 = off_dist(rng);
+  int shift = shift_dist(rng);
+  int lvl_shift = lvl_shift_dist(rng) ? 8192 : 0;
+  UWORD8 bit_depth = 10;
+
+  std::fill(dst_buf_ref.begin(), dst_buf_ref.end(), 0xAAAA);
+  std::fill(dst_buf_tst.begin(), dst_buf_tst.end(), 0xAAAA);
+
+  ref->ihevc_hbd_weighted_pred_uni_fptr(src_buf.data(), dst_buf_ref.data(),
+                                        src_strd, dst_strd, wgt0, off0, shift,
+                                        lvl_shift, ht, wd, bit_depth);
+
+  tst->ihevc_hbd_weighted_pred_uni_fptr(src_buf.data(), dst_buf_tst.data(),
+                                        src_strd, dst_strd, wgt0, off0, shift,
+                                        lvl_shift, ht, wd, bit_depth);
+
+  ASSERT_NO_FATAL_FAILURE(
+      compare_output<UWORD16>(dst_buf_ref, dst_buf_tst, wd, ht, dst_strd));
+}
+
+// ---------------------------------------------------------------------------
+
+class WeightedPredUniChromaHbdTest
+    : public ::testing::TestWithParam<WeightedPredTestParam> {
+ protected:
+  void SetUp() override {
+    std::pair<int, int> block_size;
+    std::tie(block_size, src_stride_mul, dst_stride_mul, arch) = GetParam();
+    std::tie(wd, ht) = block_size;
+
+    src_strd = 2 * wd * src_stride_mul;
+    dst_strd = 2 * wd * dst_stride_mul;
+
+    src_buf.resize(src_strd * ht + 16);
+    dst_buf_ref.resize(dst_strd * ht + 16);
+    dst_buf_tst.resize(dst_strd * ht + 16);
+
+    tst = get_tst_func_ptr(arch);
+    ref = get_ref_func_ptr();
+  }
+
+  int wd, ht, src_stride_mul, dst_stride_mul;
+  int src_strd, dst_strd;
+  std::vector<WORD16> src_buf;
+  std::vector<UWORD16> dst_buf_ref;
+  std::vector<UWORD16> dst_buf_tst;
+  IV_ARCH_T arch;
+  const ihevc_func_selector_t* tst;
+  const ihevc_func_selector_t* ref;
+};
+
+TEST_P(WeightedPredUniChromaHbdTest, Run) {
+  std::mt19937 rng(42);
+  std::uniform_int_distribution<int16_t> src_dist(-8192, 8191);
+  for (auto& v : src_buf) v = src_dist(rng);
+
+  std::uniform_int_distribution<int> wgt_dist(-128, 127);
+  std::uniform_int_distribution<int> off_dist(-128, 127);
+  std::uniform_int_distribution<int> shift_dist(4, 11);
+
+  int wgt0_cb = wgt_dist(rng);
+  int wgt0_cr = wgt_dist(rng);
+  int off0_cb = off_dist(rng);
+  int off0_cr = off_dist(rng);
+  int shift = shift_dist(rng);
+  int lvl_shift = 0;
+  UWORD8 bit_depth = 10;
+
+  std::fill(dst_buf_ref.begin(), dst_buf_ref.end(), 0xAAAA);
+  std::fill(dst_buf_tst.begin(), dst_buf_tst.end(), 0xAAAA);
+
+  ref->ihevc_hbd_weighted_pred_chroma_uni_fptr(
+      src_buf.data(), dst_buf_ref.data(), src_strd, dst_strd, wgt0_cb, wgt0_cr,
+      off0_cb, off0_cr, shift, lvl_shift, ht, wd, bit_depth);
+
+  tst->ihevc_hbd_weighted_pred_chroma_uni_fptr(
+      src_buf.data(), dst_buf_tst.data(), src_strd, dst_strd, wgt0_cb, wgt0_cr,
+      off0_cb, off0_cr, shift, lvl_shift, ht, wd, bit_depth);
+
+  ASSERT_NO_FATAL_FAILURE(
+      compare_output<UWORD16>(dst_buf_ref, dst_buf_tst, 2 * wd, ht, dst_strd));
+}
+
+// ---------------------------------------------------------------------------
+
+class WeightedPredBiLumaHbdTest
+    : public ::testing::TestWithParam<WeightedPredTestParam> {
+ protected:
+  void SetUp() override {
+    std::pair<int, int> block_size;
+    std::tie(block_size, src_stride_mul, dst_stride_mul, arch) = GetParam();
+    std::tie(wd, ht) = block_size;
+
+    src_strd = wd * src_stride_mul;
+    dst_strd = wd * dst_stride_mul;
+
+    src_buf1.resize(src_strd * ht + 16);
+    src_buf2.resize(src_strd * ht + 16);
+    dst_buf_ref.resize(dst_strd * ht + 16);
+    dst_buf_tst.resize(dst_strd * ht + 16);
+
+    tst = get_tst_func_ptr(arch);
+    ref = get_ref_func_ptr();
+  }
+
+  int wd, ht, src_stride_mul, dst_stride_mul;
+  int src_strd, dst_strd;
+  std::vector<WORD16> src_buf1;
+  std::vector<WORD16> src_buf2;
+  std::vector<UWORD16> dst_buf_ref;
+  std::vector<UWORD16> dst_buf_tst;
+  IV_ARCH_T arch;
+  const ihevc_func_selector_t* tst;
+  const ihevc_func_selector_t* ref;
+};
+
+TEST_P(WeightedPredBiLumaHbdTest, Run) {
+  std::mt19937 rng(42);
+  std::uniform_int_distribution<int16_t> src_dist(-8192, 8191);
+  for (auto& v : src_buf1) v = src_dist(rng);
+  for (auto& v : src_buf2) v = src_dist(rng);
+
+  std::uniform_int_distribution<int> wgt_dist(-128, 127);
+  std::uniform_int_distribution<int> off_dist(-128, 127);
+  std::uniform_int_distribution<int> shift_dist(5, 12);
+  std::uniform_int_distribution<int> lvl_shift_dist(0, 1);
+
+  int wgt0 = wgt_dist(rng);
+  int wgt1 = wgt_dist(rng);
+  int off0 = off_dist(rng);
+  int off1 = off_dist(rng);
+  int shift = shift_dist(rng);
+  int lvl_shift1 = lvl_shift_dist(rng) ? 8192 : 0;
+  int lvl_shift2 = lvl_shift_dist(rng) ? 8192 : 0;
+  UWORD8 bit_depth = 10;
+
+  std::fill(dst_buf_ref.begin(), dst_buf_ref.end(), 0xAAAA);
+  std::fill(dst_buf_tst.begin(), dst_buf_tst.end(), 0xAAAA);
+
+  ref->ihevc_hbd_weighted_pred_bi_fptr(
+      src_buf1.data(), src_buf2.data(), dst_buf_ref.data(), src_strd, src_strd,
+      dst_strd, wgt0, off0, wgt1, off1, shift, lvl_shift1, lvl_shift2, ht, wd,
+      bit_depth);
+
+  tst->ihevc_hbd_weighted_pred_bi_fptr(
+      src_buf1.data(), src_buf2.data(), dst_buf_tst.data(), src_strd, src_strd,
+      dst_strd, wgt0, off0, wgt1, off1, shift, lvl_shift1, lvl_shift2, ht, wd,
+      bit_depth);
+
+  ASSERT_NO_FATAL_FAILURE(
+      compare_output<UWORD16>(dst_buf_ref, dst_buf_tst, wd, ht, dst_strd));
+}
+
+// ---------------------------------------------------------------------------
+
+class WeightedPredBiChromaHbdTest
+    : public ::testing::TestWithParam<WeightedPredTestParam> {
+ protected:
+  void SetUp() override {
+    std::pair<int, int> block_size;
+    std::tie(block_size, src_stride_mul, dst_stride_mul, arch) = GetParam();
+    std::tie(wd, ht) = block_size;
+
+    src_strd = 2 * wd * src_stride_mul;
+    dst_strd = 2 * wd * dst_stride_mul;
+
+    src_buf1.resize(src_strd * ht + 16);
+    src_buf2.resize(src_strd * ht + 16);
+    dst_buf_ref.resize(dst_strd * ht + 16);
+    dst_buf_tst.resize(dst_strd * ht + 16);
+
+    tst = get_tst_func_ptr(arch);
+    ref = get_ref_func_ptr();
+  }
+
+  int wd, ht, src_stride_mul, dst_stride_mul;
+  int src_strd, dst_strd;
+  std::vector<WORD16> src_buf1;
+  std::vector<WORD16> src_buf2;
+  std::vector<UWORD16> dst_buf_ref;
+  std::vector<UWORD16> dst_buf_tst;
+  IV_ARCH_T arch;
+  const ihevc_func_selector_t* tst;
+  const ihevc_func_selector_t* ref;
+};
+
+TEST_P(WeightedPredBiChromaHbdTest, Run) {
+  std::mt19937 rng(42);
+  std::uniform_int_distribution<int16_t> src_dist(-8192, 8191);
+  for (auto& v : src_buf1) v = src_dist(rng);
+  for (auto& v : src_buf2) v = src_dist(rng);
+
+  std::uniform_int_distribution<int> wgt_dist(-128, 127);
+  std::uniform_int_distribution<int> off_dist(-128, 127);
+  std::uniform_int_distribution<int> shift_dist(5, 12);
+
+  int wgt0_cb = wgt_dist(rng);
+  int wgt0_cr = wgt_dist(rng);
+  int off0_cb = off_dist(rng);
+  int off0_cr = off_dist(rng);
+  int wgt1_cb = wgt_dist(rng);
+  int wgt1_cr = wgt_dist(rng);
+  int off1_cb = off_dist(rng);
+  int off1_cr = off_dist(rng);
+  int shift = shift_dist(rng);
+  int lvl_shift1 = 0;
+  int lvl_shift2 = 0;
+  UWORD8 bit_depth = 10;
+
+  std::fill(dst_buf_ref.begin(), dst_buf_ref.end(), 0xAAAA);
+  std::fill(dst_buf_tst.begin(), dst_buf_tst.end(), 0xAAAA);
+
+  ref->ihevc_hbd_weighted_pred_chroma_bi_fptr(
+      src_buf1.data(), src_buf2.data(), dst_buf_ref.data(), src_strd, src_strd,
+      dst_strd, wgt0_cb, wgt0_cr, off0_cb, off0_cr, wgt1_cb, wgt1_cr, off1_cb,
+      off1_cr, shift, lvl_shift1, lvl_shift2, ht, wd, bit_depth);
+
+  tst->ihevc_hbd_weighted_pred_chroma_bi_fptr(
+      src_buf1.data(), src_buf2.data(), dst_buf_tst.data(), src_strd, src_strd,
+      dst_strd, wgt0_cb, wgt0_cr, off0_cb, off0_cr, wgt1_cb, wgt1_cr, off1_cb,
+      off1_cr, shift, lvl_shift1, lvl_shift2, ht, wd, bit_depth);
+
+  ASSERT_NO_FATAL_FAILURE(
+      compare_output<UWORD16>(dst_buf_ref, dst_buf_tst, 2 * wd, ht, dst_strd));
+}
+
+// ---------------------------------------------------------------------------
+
+class WeightedPredBiDefaultLumaHbdTest
+    : public ::testing::TestWithParam<WeightedPredTestParam> {
+ protected:
+  void SetUp() override {
+    std::pair<int, int> block_size;
+    std::tie(block_size, src_stride_mul, dst_stride_mul, arch) = GetParam();
+    std::tie(wd, ht) = block_size;
+
+    src_strd = wd * src_stride_mul;
+    dst_strd = wd * dst_stride_mul;
+
+    src_buf1.resize(src_strd * ht + 16);
+    src_buf2.resize(src_strd * ht + 16);
+    dst_buf_ref.resize(dst_strd * ht + 16);
+    dst_buf_tst.resize(dst_strd * ht + 16);
+
+    tst = get_tst_func_ptr(arch);
+    ref = get_ref_func_ptr();
+  }
+
+  int wd, ht, src_stride_mul, dst_stride_mul;
+  int src_strd, dst_strd;
+  std::vector<WORD16> src_buf1;
+  std::vector<WORD16> src_buf2;
+  std::vector<UWORD16> dst_buf_ref;
+  std::vector<UWORD16> dst_buf_tst;
+  IV_ARCH_T arch;
+  const ihevc_func_selector_t* tst;
+  const ihevc_func_selector_t* ref;
+};
+
+TEST_P(WeightedPredBiDefaultLumaHbdTest, Run) {
+  std::mt19937 rng(42);
+  std::uniform_int_distribution<int16_t> src_dist(-8192, 8191);
+  for (auto& v : src_buf1) v = src_dist(rng);
+  for (auto& v : src_buf2) v = src_dist(rng);
+
+  std::uniform_int_distribution<int> lvl_shift_dist(0, 1);
+  int lvl_shift1 = lvl_shift_dist(rng) ? 8192 : 0;
+  int lvl_shift2 = lvl_shift_dist(rng) ? 8192 : 0;
+  UWORD8 bit_depth = 10;
+
+  std::fill(dst_buf_ref.begin(), dst_buf_ref.end(), 0xAAAA);
+  std::fill(dst_buf_tst.begin(), dst_buf_tst.end(), 0xAAAA);
+
+  ref->ihevc_hbd_weighted_pred_bi_default_fptr(
+      src_buf1.data(), src_buf2.data(), dst_buf_ref.data(), src_strd, src_strd,
+      dst_strd, lvl_shift1, lvl_shift2, ht, wd, bit_depth);
+
+  tst->ihevc_hbd_weighted_pred_bi_default_fptr(
+      src_buf1.data(), src_buf2.data(), dst_buf_tst.data(), src_strd, src_strd,
+      dst_strd, lvl_shift1, lvl_shift2, ht, wd, bit_depth);
+
+  ASSERT_NO_FATAL_FAILURE(
+      compare_output<UWORD16>(dst_buf_ref, dst_buf_tst, wd, ht, dst_strd));
+}
+
+// ---------------------------------------------------------------------------
+
+class WeightedPredBiDefaultChromaHbdTest
+    : public ::testing::TestWithParam<WeightedPredTestParam> {
+ protected:
+  void SetUp() override {
+    std::pair<int, int> block_size;
+    std::tie(block_size, src_stride_mul, dst_stride_mul, arch) = GetParam();
+    std::tie(wd, ht) = block_size;
+
+    src_strd = 2 * wd * src_stride_mul;
+    dst_strd = 2 * wd * dst_stride_mul;
+
+    src_buf1.resize(src_strd * ht + 16);
+    src_buf2.resize(src_strd * ht + 16);
+    dst_buf_ref.resize(dst_strd * ht + 16);
+    dst_buf_tst.resize(dst_strd * ht + 16);
+
+    tst = get_tst_func_ptr(arch);
+    ref = get_ref_func_ptr();
+  }
+
+  int wd, ht, src_stride_mul, dst_stride_mul;
+  int src_strd, dst_strd;
+  std::vector<WORD16> src_buf1;
+  std::vector<WORD16> src_buf2;
+  std::vector<UWORD16> dst_buf_ref;
+  std::vector<UWORD16> dst_buf_tst;
+  IV_ARCH_T arch;
+  const ihevc_func_selector_t* tst;
+  const ihevc_func_selector_t* ref;
+};
+
+TEST_P(WeightedPredBiDefaultChromaHbdTest, Run) {
+  std::mt19937 rng(42);
+  std::uniform_int_distribution<int16_t> src_dist(-8192, 8191);
+  for (auto& v : src_buf1) v = src_dist(rng);
+  for (auto& v : src_buf2) v = src_dist(rng);
+
+  int lvl_shift1 = 0;
+  int lvl_shift2 = 0;
+  UWORD8 bit_depth = 10;
+
+  std::fill(dst_buf_ref.begin(), dst_buf_ref.end(), 0xAAAA);
+  std::fill(dst_buf_tst.begin(), dst_buf_tst.end(), 0xAAAA);
+
+  ref->ihevc_hbd_weighted_pred_chroma_bi_default_fptr(
+      src_buf1.data(), src_buf2.data(), dst_buf_ref.data(), src_strd, src_strd,
+      dst_strd, lvl_shift1, lvl_shift2, ht, wd, bit_depth);
+
+  tst->ihevc_hbd_weighted_pred_chroma_bi_default_fptr(
+      src_buf1.data(), src_buf2.data(), dst_buf_tst.data(), src_strd, src_strd,
+      dst_strd, lvl_shift1, lvl_shift2, ht, wd, bit_depth);
+
+  ASSERT_NO_FATAL_FAILURE(
+      compare_output<UWORD16>(dst_buf_ref, dst_buf_tst, 2 * wd, ht, dst_strd));
+}
+
+INSTANTIATE_TEST_SUITE_P(WeightedPredHbd, WeightedPredUniLumaHbdTest,
+                         kLumaTestParams, PrintWeightedPredTestParam);
+
+INSTANTIATE_TEST_SUITE_P(WeightedPredHbd, WeightedPredUniChromaHbdTest,
+                         kChromaTestParams, PrintWeightedPredTestParam);
+
+INSTANTIATE_TEST_SUITE_P(WeightedPredHbd, WeightedPredBiLumaHbdTest,
+                         kLumaTestParams, PrintWeightedPredTestParam);
+
+INSTANTIATE_TEST_SUITE_P(WeightedPredHbd, WeightedPredBiChromaHbdTest,
+                         kChromaTestParams, PrintWeightedPredTestParam);
+
+INSTANTIATE_TEST_SUITE_P(WeightedPredHbd, WeightedPredBiDefaultLumaHbdTest,
+                         kLumaTestParams, PrintWeightedPredTestParam);
+
+INSTANTIATE_TEST_SUITE_P(WeightedPredHbd, WeightedPredBiDefaultChromaHbdTest,
+                         kChromaTestParams, PrintWeightedPredTestParam);
+
 }  // namespace
