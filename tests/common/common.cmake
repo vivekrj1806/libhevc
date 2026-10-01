@@ -193,6 +193,11 @@ if(ENABLE_BENCHMARKS)
   )
 
   libhevc_add_benchmark_executable(
+    ihevc_hbd_chroma_itrans_recon_benchmark
+    SOURCES ${HEVC_ROOT}/tests/common/ihevc_hbd_chroma_itrans_recon_benchmark.cc
+  )
+
+  libhevc_add_benchmark_executable(
     ihevc_chroma_recon_benchmark
     SOURCES ${HEVC_ROOT}/tests/common/ihevc_chroma_recon_benchmark.cc
   )

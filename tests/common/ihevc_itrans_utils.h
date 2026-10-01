@@ -64,6 +64,12 @@ using HbdITransReconFn = void (*)(WORD16* pi2_src, WORD16* pi2_tmp,
                                   WORD32 dst_strd, WORD32 zero_cols,
                                   WORD32 zero_rows, UWORD8 bit_depth);
 
+using HbdChromaITransReconFn = void (*)(WORD16* pi2_src, WORD16* pi2_tmp,
+                                        UWORD16* pu2_pred, UWORD16* pu2_dst,
+                                        WORD32 src_strd, WORD32 pred_strd,
+                                        WORD32 dst_strd, WORD32 zero_cols,
+                                        WORD32 zero_rows, UWORD8 bit_depth);
+
 using ReconFn = void (*)(WORD16* pi2_src, UWORD8* pu1_pred, UWORD8* pu1_dst,
                          WORD32 src_strd, WORD32 pred_strd, WORD32 dst_strd,
                          WORD32 zero_cols);
@@ -82,6 +88,8 @@ ITransReconFn GetITransReconFn(const ihevc_func_selector_t* selector,
 ChromaITransReconFn GetChromaITransReconFn(
     const ihevc_func_selector_t* selector, int trans_size);
 HbdITransReconFn GetHbdITransReconFn(IV_ARCH_T arch, int trans_size, int ttype);
+HbdChromaITransReconFn GetHbdChromaITransReconFn(IV_ARCH_T arch,
+                                                 int trans_size);
 ReconFn GetReconFn(const ihevc_func_selector_t* selector, int trans_size,
                    int ttype);
 ChromaReconFn GetChromaReconFn(const ihevc_func_selector_t* selector,

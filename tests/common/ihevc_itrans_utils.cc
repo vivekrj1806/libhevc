@@ -156,6 +156,22 @@ HbdITransReconFn GetHbdITransReconFn(IV_ARCH_T arch, int trans_size,
   return nullptr;
 }
 
+HbdChromaITransReconFn GetHbdChromaITransReconFn(IV_ARCH_T arch,
+                                                 int trans_size) {
+  if (arch == ARCH_NA) {
+    if (trans_size == 4) {
+      return ihevc_hbd_chroma_itrans_recon_4x4;
+    } else if (trans_size == 8) {
+      return ihevc_hbd_chroma_itrans_recon_8x8;
+    } else if (trans_size == 16) {
+      return ihevc_hbd_chroma_itrans_recon_16x16;
+    } else if (trans_size == 32) {
+      return ihevc_hbd_chroma_itrans_recon_32x32;
+    }
+  }
+  return nullptr;
+}
+
 ReconFn GetReconFn(const ihevc_func_selector_t* selector, int trans_size,
                    int ttype) {
   if (!selector) return nullptr;
