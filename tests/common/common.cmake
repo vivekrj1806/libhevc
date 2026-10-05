@@ -198,6 +198,14 @@ if(ENABLE_BENCHMARKS)
   )
 
   libhevc_add_benchmark_executable(
+    ihevcd_hbd_itrans_recon_dc_benchmark
+    SOURCES ${HEVC_ROOT}/tests/decoder/ihevcd_hbd_itrans_recon_dc_benchmark.cc
+  )
+  target_include_directories(ihevcd_hbd_itrans_recon_dc_benchmark PRIVATE
+    ${HEVC_ROOT}/decoder
+  )
+
+  libhevc_add_benchmark_executable(
     ihevc_chroma_recon_benchmark
     SOURCES ${HEVC_ROOT}/tests/common/ihevc_chroma_recon_benchmark.cc
   )

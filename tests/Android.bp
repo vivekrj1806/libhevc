@@ -84,3 +84,15 @@ cc_test {
         //cfi: true,
     },
 }
+
+cc_benchmark {
+    name: "ihevcd_hbd_itrans_recon_dc_benchmark",
+    defaults: ["libhevc_benchmarks_defaults"],
+    srcs: ["decoder/ihevcd_hbd_itrans_recon_dc_benchmark.cc"],
+    header_libs: [
+        "libhevcdec_headers",
+    ],
+    static_libs: [
+        "libhevcdec",
+    ],
+}
