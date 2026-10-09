@@ -91,6 +91,7 @@ cc_library_static {
 
             srcs: [
                 "arm/ihevc_intra_pred_filters_neon_intr.c",
+                "arm/ihevc_hbd_intra_pred_filters_neon_intr.c",
                 "arm/ihevc_weighted_pred_neon_intr.c",
                 "arm64/ihevc_deblk_chroma_horz.s",
                 "arm64/ihevc_deblk_chroma_vert.s",
@@ -195,6 +196,7 @@ cc_library_static {
                 "arm/ihevc_intra_pred_filters_luma_mode_11_to_17.s",
                 "arm/ihevc_intra_pred_filters_luma_mode_19_to_25.s",
                 "arm/ihevc_intra_pred_filters_neon_intr.c",
+                "arm/ihevc_hbd_intra_pred_filters_neon_intr.c",
                 "arm/ihevc_intra_pred_luma_dc.s",
                 "arm/ihevc_intra_pred_luma_horz.s",
                 "arm/ihevc_intra_pred_luma_mode2.s",

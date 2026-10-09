@@ -94,6 +94,7 @@ if("${SYSTEM_PROCESSOR}" STREQUAL "aarch64" OR "${SYSTEM_PROCESSOR}" STREQUAL "a
     APPEND
     LIBHEVC_COMMON_ASMS
     "${HEVC_ROOT}/common/arm/ihevc_intra_pred_filters_neon_intr.c"
+    "${HEVC_ROOT}/common/arm/ihevc_hbd_intra_pred_filters_neon_intr.c"
     "${HEVC_ROOT}/common/arm/ihevc_quant_iquant_ssd_neon_intr.c"
     "${HEVC_ROOT}/common/arm/ihevc_weighted_pred_neon_intr.c"
     "${HEVC_ROOT}/common/arm/ihevc_resi_trans_neon_32x32.c"
@@ -201,6 +202,7 @@ elseif("${SYSTEM_PROCESSOR}" STREQUAL "aarch32")
     "${HEVC_ROOT}/common/arm/ihevc_intra_pred_filters_luma_mode_11_to_17.s"
     "${HEVC_ROOT}/common/arm/ihevc_intra_pred_filters_luma_mode_19_to_25.s"
     "${HEVC_ROOT}/common/arm/ihevc_intra_pred_filters_neon_intr.c"
+    "${HEVC_ROOT}/common/arm/ihevc_hbd_intra_pred_filters_neon_intr.c"
     "${HEVC_ROOT}/common/arm/ihevc_intra_pred_luma_dc.s"
     "${HEVC_ROOT}/common/arm/ihevc_intra_pred_luma_horz.s"
     "${HEVC_ROOT}/common/arm/ihevc_intra_pred_luma_mode_18_34.s"

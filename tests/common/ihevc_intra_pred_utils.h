@@ -126,6 +126,9 @@ typedef void (*HbdChromaIntraPredFn)(UWORD16* pu2_ref, WORD32 src_strd,
                                      UWORD16* pu2_dst, WORD32 dst_strd,
                                      WORD32 nt, WORD32 mode);
 
+typedef ihevc_hbd_intra_pred_luma_ref_substitution_ft* HbdLumaRefSubstitutionFn;
+typedef ihevc_hbd_intra_pred_ref_filtering_ft* HbdLumaRefFilteringFn;
+
 // Function getters for 8-bit
 LumaIntraPredFn GetLumaIntraPredFn(const ihevc_func_selector_t* selector,
                                    int mode);
@@ -135,6 +138,8 @@ ChromaIntraPredFn GetChromaIntraPredFn(const ihevc_func_selector_t* selector,
 // Function getters for HBD
 HbdLumaIntraPredFn GetHbdLumaIntraPredFn(IV_ARCH_T arch, int mode);
 HbdChromaIntraPredFn GetHbdChromaIntraPredFn(IV_ARCH_T arch, int mode);
+HbdLumaRefSubstitutionFn GetHbdLumaRefSubstitutionFn(IV_ARCH_T arch);
+HbdLumaRefFilteringFn GetHbdLumaRefFilteringFn(IV_ARCH_T arch);
 
 struct IntraPredModeInfo {
   int mode;
