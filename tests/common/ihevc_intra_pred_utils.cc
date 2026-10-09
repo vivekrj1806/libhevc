@@ -78,6 +78,28 @@ HbdLumaIntraPredFn GetHbdLumaIntraPredFn(IV_ARCH_T arch, int mode) {
     if (mode >= 27 && mode <= 33)
       return ihevc_hbd_intra_pred_luma_mode_27_to_33;
   }
+#if defined(__aarch64__) || defined(__arm__)
+  if (arch == ARCH_ARMV8_GENERIC || arch == ARCH_ARM_A9Q ||
+      arch == ARCH_ARM_NEONINTR) {
+    if (mode == 0) return ihevc_hbd_intra_pred_luma_planar_neonintr;
+    if (mode == 1) return ihevc_hbd_intra_pred_luma_dc_neonintr;
+    if (mode == 2) return ihevc_hbd_intra_pred_luma_mode2_neonintr;
+    if (mode >= 3 && mode <= 9)
+      return ihevc_hbd_intra_pred_luma_mode_3_to_9_neonintr;
+    if (mode == 10)
+      return (HbdLumaIntraPredFn)ihevc_hbd_intra_pred_luma_horz_neonintr;
+    if (mode >= 11 && mode <= 17)
+      return ihevc_hbd_intra_pred_luma_mode_11_to_17_neonintr;
+    if (mode == 18 || mode == 34)
+      return ihevc_hbd_intra_pred_luma_mode_18_34_neonintr;
+    if (mode >= 19 && mode <= 25)
+      return ihevc_hbd_intra_pred_luma_mode_19_to_25_neonintr;
+    if (mode == 26)
+      return (HbdLumaIntraPredFn)ihevc_hbd_intra_pred_luma_ver_neonintr;
+    if (mode >= 27 && mode <= 33)
+      return ihevc_hbd_intra_pred_luma_mode_27_to_33_neonintr;
+  }
+#endif
   // Future SIMD implementations can be added here
   return nullptr;
 }
@@ -99,6 +121,32 @@ HbdChromaIntraPredFn GetHbdChromaIntraPredFn(IV_ARCH_T arch, int mode) {
       return ihevc_hbd_intra_pred_chroma_mode_27_to_33;
   }
   // Future SIMD implementations can be added here
+  return nullptr;
+}
+
+HbdLumaRefSubstitutionFn GetHbdLumaRefSubstitutionFn(IV_ARCH_T arch) {
+  if (arch == ARCH_NA) {
+    return ihevc_hbd_intra_pred_luma_ref_substitution;
+  }
+#if defined(__aarch64__) || defined(__arm__)
+  if (arch == ARCH_ARMV8_GENERIC || arch == ARCH_ARM_A9Q ||
+      arch == ARCH_ARM_NEONINTR) {
+    return ihevc_hbd_intra_pred_luma_ref_substitution_neonintr;
+  }
+#endif
+  return nullptr;
+}
+
+HbdLumaRefFilteringFn GetHbdLumaRefFilteringFn(IV_ARCH_T arch) {
+  if (arch == ARCH_NA) {
+    return ihevc_hbd_intra_pred_ref_filtering;
+  }
+#if defined(__aarch64__) || defined(__arm__)
+  if (arch == ARCH_ARMV8_GENERIC || arch == ARCH_ARM_A9Q ||
+      arch == ARCH_ARM_NEONINTR) {
+    return ihevc_hbd_intra_pred_ref_filtering_neonintr;
+  }
+#endif
   return nullptr;
 }
 
